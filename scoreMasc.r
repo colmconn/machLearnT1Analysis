@@ -1,0 +1,1 @@
+../../rsfcGraphAnalysis/scripts/scoreMasc.r
