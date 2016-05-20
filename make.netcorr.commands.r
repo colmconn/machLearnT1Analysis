@@ -1,5 +1,7 @@
 #!/bin/env Rscript
 
+options(error = function() traceback())
+
 AFNI_R_DIR=Sys.getenv("AFNI_R_DIR", unset=NA)
 
 ## use the functions for loading and saving briks from the AFNI
@@ -21,6 +23,11 @@ help <- function(){
 }
 
 check.command.line.arguments <- function (in.opt) {
+
+    if (is.null(in.opt$quiet)) {
+        in.opt$quiet=FALSE
+    }
+    
     ## if help was asked for print a friendly message
     ## and exit with a non-zero error code
     if ( !is.null(in.opt$help) ) {
@@ -30,12 +37,13 @@ check.command.line.arguments <- function (in.opt) {
     }
 
     if ( is.null(in.opt$window) ) {
-        cat("*** No value provided for window. Assuming none\n")
+        if (! in.opt$quiet)
+            cat("*** No value provided for window. Assuming none\n")
         in.opt$window="none"
     }
     
     valid.window.types=c("consecutive", "overlap", "none")
-    window.type=pmatch(in.opt$window,valid.window.types)
+    window.type=pmatch(in.opt$window, valid.window.types)
     if ( is.na(window.type) ) {
         cat(sprintf("*** Valid options for window type are %s\n", paste(valid.window.types, collapse=", ")))
         if ( ! interactive()) 
@@ -44,6 +52,9 @@ check.command.line.arguments <- function (in.opt) {
         in.opt$window=valid.window.types[window.type]
     }
 
+    if (in.opt$window == "none" ) 
+        in.opt$width=NA
+    
     if ( is.null(in.opt$width) && in.opt$window != "none") {
         cat("*** You must provide a window width when using a \"", in.opt$window,  "\" window\n", sep="")
         if ( ! interactive()) 
@@ -57,7 +68,8 @@ check.command.line.arguments <- function (in.opt) {
         cat("*** You must provide a step to leave between consecutive window starts when using a \"", in.opt$window,  "\" window\n", sep="")
         q(status=1)
     } else if ( in.opt$window %in% c("consecutive", "none") ) {
-        cat("*** WARNING: window type is set to \"", in.opt$window, "\", ignoring step\n", sep="")
+        if (! in.opt$quiet)
+            cat("*** WARNING: window type is set to \"", in.opt$window, "\", ignoring step\n", sep="")
         in.opt$step = NA
     }
 
@@ -77,6 +89,8 @@ check.command.line.arguments <- function (in.opt) {
         in.opt$extra=gsub("[\\\'\"]", "", in.opt$extra)
     }
 
+
+    
     return(in.opt)
 }
 
@@ -100,7 +114,8 @@ make.windows <- function (in.opt, in.length) {
         window.starts=seq.int(from=0, to=(in.length-in.opt$width), by=in.opt$width)
         window.ends=(window.starts + in.opt$width) -1
         if (tail(window.ends, 1) < in.length) {
-            cat("*** WARNING: The dataset is not a multiple of the window with and will be truncated\n")
+            if (! in.opt$quiet)
+                cat("*** WARNING: The dataset is not a multiple of the window with and will be truncated\n")
         }
         
         indices=cbind(window.starts, window.ends)
@@ -148,7 +163,8 @@ make.windows <- function (in.opt, in.length) {
         window.starts=seq.int(from=0, to=(in.length-in.opt$width), by=in.opt$step)
         window.ends=(window.starts + in.opt$width) -1
         if (tail(window.ends, 1) < in.length) {
-            cat("*** WARNING: The dataset is not a multiple of the window with and will be truncated\n")
+            if (! in.opt$quiet)
+                cat("*** WARNING: The dataset is not a multiple of the window with and will be truncated\n")
         }
         indices=cbind(window.starts, window.ends)
         windows=unlist(apply(indices, 1, function (xx) {
@@ -185,7 +201,8 @@ make.3dNetCorr.commands <- function (in.opt, in.windows) {
 
 read.mri.file <- function(in.filename) {
     if ( file.exists(in.filename)) {
-        cat("*** Reading", in.filename, "\n")
+        if (! opt$quiet)
+            cat("*** Reading", in.filename, "\n")
         mri.dset=read.AFNI(in.filename, verb=TRUE)
     } else {
         mri.dset=NULL
@@ -216,7 +233,8 @@ check.gridset <- function() {
 check.template.space <- function() {
     ## check that the rois and the EPI in the same space
     if (source.brik$NI_head$TEMPLATE_SPACE$dat != rois.brik$NI_head$TEMPLATE_SPACE$dat ) {
-        err.msg="ERROR: The template space of the source EPI dataset and rois to not match. Cannot continue. Stopping.\n"
+        err.msg=sprintf("ERROR: The template space of the source EPI dataset (%s) and ROIs mask (%s) to not match. Cannot continue. Stopping.\n",
+            source.brik$NI_head$TEMPLATE_SPACE$dat, rois.brik$NI_head$TEMPLATE_SPACE$dat)
         if (interactive())
             cat(err.msg)
         else
@@ -228,29 +246,11 @@ check.template.space <- function() {
 
 conditionally.make.destination.dir <- function (in.opt) {
     if ( ! dir.exists(in.opt$destination)) {
-        cat("*** Recursively creating", in.opt$destination, "\n")
+        if (! in.opt$quiet)
+            cat("*** Recursively creating", in.opt$destination, "\n")
         dir.create(in.opt$destination, recursive=TRUE)
     }
 }
-
-prepare.to.run.net.corr.commands <- function (in.opt) {
-    an = parse.AFNI.name(in.opt$source)
-    print(an)
-    uncompress.AFNI(head.AFNI.name(an))
-
-    ## if (grepl("\.gz$", in.opt$source, fixed=FALSE) {
-    ##     cat("*** gunzipping source EPI file\n")
-    ##     system(paste("gunzip -d", in.opt$source
-        
-
-}
-
-
-## run.net.corr.commands <- function (in.net.corr.commands) {
-##     for (ii in 1:length(in.net.corr.commands)) {
-##         system(in.net.corr.commands[ii])
-##     }
-## }
 
 ##########################################################################################################################################################################
 ### END OF FUNCTIONS #####################################################################################################################################################
@@ -270,7 +270,8 @@ spec = matrix(c(
     "destination",   "d", REQUIRED_ARGUMENT, "character", "Destination directory",
     "rois",          "r", REQUIRED_ARGUMENT, "character", "Mask of ROIs",
     "prefix",        "p", REQUIRED_ARGUMENT, "character", "Prefix to use for created bucket files",
-    "extra",         "x", REQUIRED_ARGUMENT, "character", "Extra arguments to provide to 3dNetCorr. These must be valid 3dNetCorr arguments" 
+    "extra",         "x", REQUIRED_ARGUMENT, "character", "Extra arguments to provide to 3dNetCorr. These must be valid 3dNetCorr arguments",
+    "quiet",         "q", NO_ARGUMENT,       "logical",   "Print no informational message. Only print 3dNetCorr commands."
 ), byrow=TRUE, ncol=5)
 
 if (interactive()) {
@@ -297,28 +298,32 @@ if (interactive()) {
 }
 
 opt=check.command.line.arguments(opt)
-print.command.line.arguments.summary()
+if (! opt$quiet)
+    print.command.line.arguments.summary()
 
 source.brik=read.mri.file(opt$source)
 rois.brik=read.mri.file(opt$rois)
 
 number.of.trs=source.brik$dim[4]
-cat("*** EPI dataset is", number.of.trs, "TRs long.\n")
+if (! opt$quiet)
+    cat("*** EPI dataset is", number.of.trs, "TRs long.\n")
 
 number.of.rois=max(max(rois.brik$brk))
-cat("*** There are", number.of.rois, "in the ROIs dataset.\n")
-  
-check.gridset()
-check.template.space()
+if (! opt$quiet)
+    cat("*** There are", number.of.rois, "ROIs in the ROI mask dataset.\n")
+
+
+if(check.gridset())
+    if (! opt$quiet)
+        cat("*** Gridsets match\n")
+
+if(check.template.space())
+    if (! opt$quiet)
+        cat("*** Template spaces match\n")
 
 windows=make.windows(opt, number.of.trs)
 
 conditionally.make.destination.dir(opt)
 
 net.corr.commands=make.3dNetCorr.commands(opt, windows)
-print(net.corr.commands)
-
-prepare.to.run.net.corr.commands(opt)
-
-
-## run.net.corr.commands(net.corr.commands)
+cat(net.corr.commands, sep="\n")
