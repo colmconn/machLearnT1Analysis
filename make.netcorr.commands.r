@@ -27,6 +27,10 @@ check.command.line.arguments <- function (in.opt) {
     if (is.null(in.opt$quiet)) {
         in.opt$quiet=FALSE
     }
+
+    if (is.null(in.opt$execute)) {
+        in.opt$execute=FALSE
+    }
     
     ## if help was asked for print a friendly message
     ## and exit with a non-zero error code
@@ -69,7 +73,7 @@ check.command.line.arguments <- function (in.opt) {
         q(status=1)
     } else if ( in.opt$window %in% c("consecutive", "none") ) {
         if (! in.opt$quiet)
-            cat("*** WARNING: window type is set to \"", in.opt$window, "\", ignoring step\n", sep="")
+            cat("*** Window type is set to \"", in.opt$window, "\", ignoring step\n", sep="")
         in.opt$step = NA
     }
 
@@ -101,6 +105,8 @@ print.command.line.arguments.summary <- function () {
     cat("*** Window type is set to           :", opt$window,  "\n")
     cat("*** Window width is set to          :", opt$width,  "\n")
     cat("*** Window step is set to           :", opt$step,  "\n")
+    if (opt$execute) 
+        cat("*** Executing 3dNetCorr commands\n")    
     if ( ! is.null(opt$extra)) 
         cat("*** Extra agruments for 3dNetCorr   :", opt$extra,  "\n")
 }
@@ -178,9 +184,9 @@ make.3dNetCorr.commands <- function (in.opt, in.windows) {
 
     yy=cbind(seq.int(1, length(in.windows)), in.windows)
 
-    ll=unlist(apply(yy, 1, function (xx) {
-        sprintf("3dNetCorr %s -prefix %s/%s.%02d -in_rois %s -inset %s\'[%s]\'",
-                ifelse(is.null(in.opt$extra), "", in.opt$extra), in.opt$destination, in.opt$prefix, as.integer(xx[1]), in.opt$rois, in.opt$source, xx[2])
+    args=unlist(apply(yy, 1, function (xx) {
+        sprintf("%s-prefix %s/%s.%02d -in_rois %s -inset %s\'[%s]\'",
+                ifelse(is.null(in.opt$extra), "", paste(in.opt$extra, " ", sep="")), in.opt$destination, in.opt$prefix, as.integer(xx[1]), in.opt$rois, in.opt$source, xx[2])
             }))
 
     ## ll=unlist(sapply(in.windows, function (xx) {
@@ -195,7 +201,9 @@ make.3dNetCorr.commands <- function (in.opt, in.windows) {
     ##     }
     ##                  ))
 
-    return(ll)
+    cmds=mapply(list, rep("3dNetCorr", length(args)), args, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+    return(cmds)
+    ## return(list("command" = "3dNetCorr", "arguments"=args))
 }
 
 
@@ -252,6 +260,23 @@ conditionally.make.destination.dir <- function (in.opt) {
     }
 }
 
+
+execute.commands <- function (in.commands) {
+    for (ii in 1:length(in.commands)) {
+        cat("*** Executing:", paste(net.corr.commands[[ii]][[1]],  net.corr.commands[[ii]][[2]]), "\n")
+        ## the first element of each sublist in net.corr.commands
+        ## contains the commands to be executed and the second the
+        ## arguments to that command
+        system2(net.corr.commands[[ii]][[1]], net.corr.commands[[ii]][[2]])
+    }
+}
+
+print.commands <- function (in.commands) {
+    for (ii in 1:length(in.commands)) {
+        cat(paste(net.corr.commands[[ii]][[1]],  net.corr.commands[[ii]][[2]]), "\n")
+    }
+}
+
 ##########################################################################################################################################################################
 ### END OF FUNCTIONS #####################################################################################################################################################
 ##########################################################################################################################################################################
@@ -271,27 +296,35 @@ spec = matrix(c(
     "rois",          "r", REQUIRED_ARGUMENT, "character", "Mask of ROIs",
     "prefix",        "p", REQUIRED_ARGUMENT, "character", "Prefix to use for created bucket files",
     "extra",         "x", REQUIRED_ARGUMENT, "character", "Extra arguments to provide to 3dNetCorr. These must be valid 3dNetCorr arguments",
-    "quiet",         "q", NO_ARGUMENT,       "logical",   "Print no informational message. Only print 3dNetCorr commands."
+    "quiet",         "q", NO_ARGUMENT,       "logical",   "Print no informational message. Only print 3dNetCorr commands.",
+    "execute",       "u", NO_ARGUMENT,       "logical",   "Execute the 3dNetCorr commands instead of printing them out. The default is to print them out"
 ), byrow=TRUE, ncol=5)
 
 if (interactive()) {
     cat("*** Setting interactive options\n")
     ## these are default arguments that are useful for testing
     ## purposes.
- 
+    ## args=c(
+    ## "--source", "../data/425_A/rsfcPreprocessed/425_A.pm.cleanEPI.MNI.nii.gz",
+    ## "-d", "../data/425_A/rsfcWindows",
+    ## "-p", "425_A.pm.cleanEPI.window",
+    ## "-r", "../standard/HarvardOxford/HarvardOxford-cort-maxprob-thr50-3mm.nii.gz",
+    ## "-w", "consecutive",
+    ## ## "-w", "none",
+    ## "-w", "overlap",                
+    ## "-t", "5",
+    ## "-e", "3"#,
+    ## "-x", "\"-part_corr\""
+    ## )
+    
     args=c(
         "--source", "../data/425_A/rsfcPreprocessed/425_A.pm.cleanEPI.MNI.nii.gz",
-        "-d", "../data/425_A/rsfcWindows",
-        "-p", "425_A.pm.cleanEPI.window",
-        "-r", "../standard/HarvardOxford/HarvardOxford-cort-maxprob-thr50-3mm.nii.gz",
-        "-w", "consecutive",
-        ## "-w", "none",
-        "-w", "overlap",                
-        "-t", "5",
-        "-e", "3"#,
-        # "-x", "\"-part_corr\""
+        "-d",  "../data/425_A/rsfcGraphs",
+        "-p",  "425_A.pm.cleanEPI.aal2.whole.ts",
+        "-w",  "none",
+        "-r",  "../standard/aal2_for_SPM12/aal2.3mm.nii.gz",
+        "-u"
     )
-
     opt = getopt(spec, opt=args)
 } else {
     opt = getopt(spec)
@@ -326,4 +359,9 @@ windows=make.windows(opt, number.of.trs)
 conditionally.make.destination.dir(opt)
 
 net.corr.commands=make.3dNetCorr.commands(opt, windows)
-cat(net.corr.commands, sep="\n")
+
+if (opt$execute) {
+    execute.commands(net.corr.commands)
+} else {
+    print.commands(net.corr.commands)
+}
