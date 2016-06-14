@@ -1,2 +1,0 @@
-cd /data/sanDiego/machLearnT1Analysis/data/117_A2; 3dcopy 117_A2+orig.HEAD 117_A2.anat.nii; 3dresample -orient RPI -inset 117_A2.anat.nii -prefix 117_A2.anat.std.nii
-cd /data/sanDiego/machLearnT1Analysis/data/334_A2; 3dcopy 334_A2+orig.HEAD 334_A2.anat.nii; 3dresample -orient RPI -inset 334_A2.anat.nii -prefix 334_A2.anat.std.nii
