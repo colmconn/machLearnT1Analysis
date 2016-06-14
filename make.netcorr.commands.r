@@ -180,14 +180,18 @@ make.windows <- function (in.opt, in.length) {
     return(windows)
 }
 
-make.3dNetCorr.commands <- function (in.opt, in.windows) {
+make.3dNetCorr.commands <- function (in.opt, in.windows, in.sub.brik.selector) {
 
     yy=cbind(seq.int(1, length(in.windows)), in.windows)
 
     args=unlist(apply(yy, 1, function (xx) {
-        sprintf("%s-prefix %s/%s.%02d -in_rois %s -inset %s\'[%s]\'",
-                ifelse(is.null(in.opt$extra), "", paste(in.opt$extra, " ", sep="")), in.opt$destination, in.opt$prefix, as.integer(xx[1]), in.opt$rois, in.opt$source, xx[2])
-            }))
+        if (in.sub.brik.selector) {
+            sprintf("%s-prefix %s/%s.%02d -in_rois %s -inset %s\'[%s]\'",
+                    ifelse(is.null(in.opt$extra), "", paste(in.opt$extra, " ", sep="")), in.opt$destination, in.opt$prefix, as.integer(xx[1]), in.opt$rois, in.opt$source, xx[2])
+        } else {
+            sprintf("%s-prefix %s/%s.%02d -in_rois %s -inset %s",
+                    ifelse(is.null(in.opt$extra), "", paste(in.opt$extra, " ", sep="")), in.opt$destination, in.opt$prefix, as.integer(xx[1]), in.opt$rois, in.opt$source)
+        }}))
 
     ## ll=unlist(sapply(in.windows, function (xx) {
     ##     sprintf("3dNetCorr -prefix %s/%s -rois %s -inset %s\'[%s]\'",
@@ -228,7 +232,7 @@ read.mri.file <- function(in.filename) {
 check.gridset <- function() { 
     ## check that the rois and the EPI are at the same resolution
     if ( ! all(abs(source.brik$delta) == abs(rois.brik$delta)) ) {
-        err.msg="ERROR: The gridset of the source EPI dataset and rois to not match. Cannot continue. Stopping.\n"
+        err.msg="ERROR: The gridset of the source dataset and ROIs mask do not match. Cannot continue. Stopping.\n"
         if (interactive())
             cat(err.msg)
         else
@@ -241,7 +245,7 @@ check.gridset <- function() {
 check.template.space <- function() {
     ## check that the rois and the EPI in the same space
     if (source.brik$NI_head$TEMPLATE_SPACE$dat != rois.brik$NI_head$TEMPLATE_SPACE$dat ) {
-        err.msg=sprintf("ERROR: The template space of the source EPI dataset (%s) and ROIs mask (%s) to not match. Cannot continue. Stopping.\n",
+        err.msg=sprintf("ERROR: The template space of the source dataset (%s) and ROIs mask (%s) to not match. Cannot continue. Stopping.\n",
             source.brik$NI_head$TEMPLATE_SPACE$dat, rois.brik$NI_head$TEMPLATE_SPACE$dat)
         if (interactive())
             cat(err.msg)
@@ -317,12 +321,20 @@ if (interactive()) {
     ## "-x", "\"-part_corr\""
     ## )
     
+    ## args=c(
+    ##     "--source", "../data/425_A/rsfcPreprocessed/425_A.pm.cleanEPI.MNI.nii.gz",
+    ##     "-d",  "../data/425_A/rsfcGraphs",
+    ##     "-p",  "425_A.pm.cleanEPI.aal2.whole.ts",
+    ##     "-w",  "none",
+    ##     "-r",  "../standard/aal2_for_SPM12/aal2.3mm.nii.gz",
+    ##     "-u"
+    ## )
     args=c(
-        "--source", "../data/425_A/rsfcPreprocessed/425_A.pm.cleanEPI.MNI.nii.gz",
-        "-d",  "../data/425_A/rsfcGraphs",
-        "-p",  "425_A.pm.cleanEPI.aal2.whole.ts",
+        "--source", "../data/425_A/425_A.anat_struc_GM_to_template_GM_mod_s2.nii.gz",
+        "-d",  "../data/425_A/anatGraphs",
+        "-p",  "425_A.anat.aal2.whole",
         "-w",  "none",
-        "-r",  "../standard/aal2_for_SPM12/aal2.3mm.nii.gz",
+        "-r",  "../standard/aal2_for_SPM12/aal2.nii.gz",
         "-u"
     )
     opt = getopt(spec, opt=args)
@@ -358,7 +370,11 @@ windows=make.windows(opt, number.of.trs)
 
 conditionally.make.destination.dir(opt)
 
-net.corr.commands=make.3dNetCorr.commands(opt, windows)
+if (number.of.trs > 1) {
+    net.corr.commands=make.3dNetCorr.commands(opt, windows, TRUE)
+} else { 
+    net.corr.commands=make.3dNetCorr.commands(opt, windows, FALSE)
+}
 
 if (opt$execute) {
     execute.commands(net.corr.commands)
