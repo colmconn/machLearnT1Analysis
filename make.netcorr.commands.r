@@ -321,22 +321,23 @@ if (interactive()) {
     ## "-x", "\"-part_corr\""
     ## )
     
-    ## args=c(
-    ##     "--source", "../data/425_A/rsfcPreprocessed/425_A.pm.cleanEPI.MNI.nii.gz",
-    ##     "-d",  "../data/425_A/rsfcGraphs",
-    ##     "-p",  "425_A.pm.cleanEPI.aal2.whole.ts",
-    ##     "-w",  "none",
-    ##     "-r",  "../standard/aal2_for_SPM12/aal2.3mm.nii.gz",
-    ##     "-u"
-    ## )
     args=c(
-        "--source", "../data/425_A/425_A.anat_struc_GM_to_template_GM_mod_s2.nii.gz",
-        "-d",  "../data/425_A/anatGraphs",
-        "-p",  "425_A.anat.aal2.whole",
+        "--source", "../data/425_A/rsfcPreprocessed/425_A.pm.cleanEPI.MNI.nii.gz",
+        "-d",  "../data/425_A/rsfcGraphs",
+        "-p",  "425_A.pm.cleanEPI.aal2.whole.ts",
         "-w",  "none",
-        "-r",  "../standard/aal2_for_SPM12/aal2.nii.gz",
+        "--extra", "\\-fish_z",
+        "-r",  "../standard/aal2_for_SPM12/aal2.3mm.nii.gz",
         "-u"
     )
+    ## args=c(
+    ##     "--source", "../data/425_A/425_A.anat_struc_GM_to_template_GM_mod_s2.nii.gz",
+    ##     "-d",  "../data/425_A/anatGraphs",
+    ##     "-p",  "425_A.anat.aal2.whole",
+    ##     "-w",  "none",
+    ##     "-r",  "../standard/aal2_for_SPM12/aal2.nii.gz",
+    ##     "-u"
+    ## )
     opt = getopt(spec, opt=args)
 } else {
     opt = getopt(spec)
