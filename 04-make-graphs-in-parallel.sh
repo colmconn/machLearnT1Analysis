@@ -30,8 +30,8 @@ for subject in $subjects ; do
 	    	--destination ../data/${subject}/rsfcGraphs		\
 	    	--prefix ${subject}.pm.cleanEPI.aal2.whole.ts		\
 	    	--window none						\
-		--extra \\\\-part_corr					\
-	    	--rois ../standard/aal2_for_SPM12/aal2.3mm.nii.gz	\
+		--extra \"\\\\-part_corr \\\\-fish_z\" 			\
+	    	--rois ../standard/aal2_for_SPM12/aal2.nocerebellum.3mm.nii.gz	\
 	    	--execute" >> $taskFile
 	fi
     fi
@@ -44,7 +44,7 @@ for subject in $subjects ; do
         	--destination  ../data/${subject}/anatGraphs	\
 	        --prefix  ${subject}.anat.aal2.whole		\
 	        --window  none					\
-	        --rois  ../standard/aal2_for_SPM12/aal2.nii.gz	\
+	        --rois  ../standard/aal2_for_SPM12/aal2.nocerebellum.3mm.nii.gz	\
         	--execute" >> $taskFile
 	fi
     fi
