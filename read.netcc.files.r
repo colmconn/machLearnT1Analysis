@@ -58,6 +58,9 @@ fix.demographics.table <- function(in.demographics) {
         in.demographics$Gender=droplevels(in.demographics$Gender)
     }
 
+    cat("*** Renaming Grp to Group\n")
+    in.demographics = rename(in.demographics, replace=c("Grp" = "Group"))
+    
     return(in.demographics)
 }
 
@@ -263,6 +266,8 @@ read.aal.atlas.label.names <- function (in.filename) {
     aal.labels[, 3] = abbreviate(gsub("_", " ", gsub("(.*)_([LR])", "\\2_\\1", aal.labels[, 2]), fixed=TRUE))
     ## aal.labels[, 3] = apply(aal.labels, 1, function(xx) { sprintf("R%03d", as.integer(xx[1])) })    
     colnames(aal.labels) = c("ID", "Name", "FvLabel")
+    aal.labels$hemi=sub (".*_([LR])$", "\\1", aal.labels$Name)
+    aal.labels$label=sub ("(.*)_([LR])$", "\\1", aal.labels$Name)
 
     return(aal.labels)
 }
@@ -317,7 +322,7 @@ list.excluded.subjects <- function(in.df) {
             cat ("--- The following subjects were dropped from the data frame\n")
             dl=as.vector (  in.df[which(in.drop.list), "Study.ID"])
             cat ("---", paste (dl, collapse=" "), "\n")
-            cat ("---", paste (as.vector (  in.df[which(in.drop.list), "Grp"]),     collapse=" "), "\n")
+            cat ("---", paste (as.vector (  in.df[which(in.drop.list), "Group"]),     collapse=" "), "\n")
         }
         return(dl)
     }
@@ -325,12 +330,12 @@ list.excluded.subjects <- function(in.df) {
     drop.count=0
     ## cat("*** Filtering to exlcude subjects who were medicated or do not meet other inclusion/exclusion criteria\n")
     ## cat("*** Subject numbers BEFORE filtering\n")
-    ## print(addmargins(table(in.df[, c("Gender", "Grp")])))
+    ## print(addmargins(table(in.df[, c("Gender", "Group")])))
 
     ## ################################################
     ## Drop MDDs with CDRS-R > 54
     cat("*** Checking for NCLs with CDRS-R tscore > 54\n")
-    drop.list.cdrsr.gt.fiftyfour=in.df$Grp=="NCL" & in.df$CDRS.tscore > 54
+    drop.list.cdrsr.gt.fiftyfour=in.df$Group=="NCL" & in.df$CDRS.tscore > 54
     drop.count=drop.count + sum(drop.list.cdrsr.gt.fiftyfour)
     dropped.subjects.list=print.dropped.subject.list(drop.list.cdrsr.gt.fiftyfour)
     ## in.df = in.df[ ! drop.list , ]
@@ -338,7 +343,7 @@ list.excluded.subjects <- function(in.df) {
     ## ################################################    
     ## Drop NCLs with CDRS-R > 55
     cat("*** Checking for MDDs with CDRS-R tscore < 55\n")
-    drop.list.cdrsr.lt.fiftyfive=in.df$Grp=="MDD" & in.df$CDRS.tscore < 55
+    drop.list.cdrsr.lt.fiftyfive=in.df$Group=="MDD" & in.df$CDRS.tscore < 55
     drop.count=drop.count + sum(drop.list.cdrsr.lt.fiftyfive)    
     dropped.subjects.list=c(dropped.subjects.list, print.dropped.subject.list(drop.list.cdrsr.lt.fiftyfive))
     ## in.df = in.df[ ! drop.list, ]    
@@ -377,7 +382,7 @@ list.excluded.subjects <- function(in.df) {
 
     cat("***", drop.count, "subjects are to be dropped\n")
     ## cat("*** Subject numbers AFTER filtering\n")
-    ## print(addmargins(table(in.df[, c("Gender", "Grp")])))
+    ## print(addmargins(table(in.df[, c("Gender", "Group")])))
 
     ## new.dims=dim(in.df)
     ## if (isTRUE(all.equal(orig.dims, new.dims))) {
@@ -620,7 +625,7 @@ check.number.of.rois.match()
 
 characteristics.df=data.frame(
     "Study.ID"           =netcc.filenames.and.subjects.df$Study.ID,
-    demographics                      [match(netcc.filenames.and.subjects.df$Study.ID, demographics$Study.ID),  c("Grp", "Gender", "DOB", "MRI", "CDRS.tscore")],
+    demographics                      [match(netcc.filenames.and.subjects.df$Study.ID, demographics$Study.ID),  c("Group", "Gender", "DOB", "MRI", "CDRS.tscore")],
     wasi.data                         [match(netcc.filenames.and.subjects.df$Study.ID, wasi.data$Study.ID),     c("Verbal", "Performance", "Full")],
     "telomere.final.T.S"=telomere.data[match(netcc.filenames.and.subjects.df$Study.ID, telomere.data$Study.ID), "final.T.S"],
     "mt.dna"            =mt.dna.data  [match(netcc.filenames.and.subjects.df$Study.ID, mt.dna.data$Study.ID),   "mtDNA"])
@@ -699,17 +704,17 @@ cat("*** Creating graph for each subject\n")
 g <- lapply(thresholded.matrixes, function(xx) { graph_from_adjacency_matrix(xx$r.thresh, mode="undirected", diag=FALSE) } )
 
 
-modality="RSFC"
+## modality="RSFC"
 
-g1 <- set.brainGraph.attributes(g[[1]],
-                                modality=modality,
-                                subject=characteristics.df[1, "Study.ID"],
-                                group=characteristics.df[1, "Grp"])
+## g1 <- set.brainGraph.attributes(g[[1]],
+##                                 modality=modality,
+##                                 subject=characteristics.df[1, "Study.ID"],
+##                                 group=characteristics.df[1, "Group"])
 
 ## g <- Map(function(x, y, z) {
 ##     llply(x, set.brainGraph.attributes, atlas=atlas, modality=modality, group=y, subject=z, .progress='text')
 ## },
-##          g, as.list(as.character(characteristics.df$Grp)), as.list(as.character(characteristics.df$Study.ID)))
+##          g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
 
 
 
@@ -719,11 +724,11 @@ g1 <- set.brainGraph.attributes(g[[1]],
 
 ## select and reorder the columns
 ## feature.df=feature.df[,
-##     c("subject", "Grp", "Gender", "age.in.years", "Verbal", "Performance", "Full", "telomere.final.T.S", "mt.dna",
+##     c("subject", "Group", "Gender", "age.in.years", "Verbal", "Performance", "Full", "telomere.final.T.S", "mt.dna",
 ##       colnames(feature.df)[grep(roi.label.regexp, colnames(feature.df))])]
 
 ## feature.df=feature.df[,
-##     c("subject", "Grp",
+##     c("subject", "Group",
 ##       colnames(feature.df)[grep(roi.label.regexp, colnames(feature.df))])]
 ## cat("*** There are", dim(feature.df)[1], "subjects\n")
 
