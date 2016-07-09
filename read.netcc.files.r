@@ -1,13 +1,6 @@
 rm(list=ls())
 graphics.off()
 
-library(stringr)
-library(tidyr)
-library(igraph)
-library(plyr)
-library(data.table)
-library(brainGraph)
-
 ####################################################################################################
 ### FUNCTION DEFINITIONS
 ####################################################################################################
@@ -488,7 +481,7 @@ filter.feature.matrix <- function(in.feature.matrix, in.p.threshold=0.01) {
 ## ##################################################################################################
 ## END OF FUNCITONS
 ## ##################################################################################################
-    
+
 ### setup path variables
 if ( Sys.info()["sysname"] == "Darwin" ) {
     root.dir="/Volumes/data"
@@ -498,6 +491,12 @@ if ( Sys.info()["sysname"] == "Darwin" ) {
     cat(paste("Sorry can't set data directories for this computer\n"))
 }
 
+library(stringr)
+library(tidyr)
+library(igraph)
+library(plyr)
+library(data.table)
+library(brainGraph)
 
 study.root.dir=file.path(root.dir, "sanDiego/machLearnT1Analysis")
 standard.data.dir=file.path(study.root.dir, "standard")
