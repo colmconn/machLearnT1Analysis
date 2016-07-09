@@ -651,7 +651,7 @@ cat("*** Z-scoring netcc array\n")
 netcc.og=netcc
 netcc=atanh(netcc)
 
-cat("*** subject distribution is as follows:\n")
+cat("*** The subject distribution is as follows:\n")
 subject.distribution=addmargins(xtabs(~ Group + Gender, data=characteristics.df))
 print(subject.distribution)
 
