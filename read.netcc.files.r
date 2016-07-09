@@ -345,7 +345,7 @@ list.excluded.subjects <- function(in.df) {
     ## 391 is in group RUM on the demographics sheet, but I've no idea
     ## what this means so dump them
     cat("*** Checking for other excluded subjects\n")
-    drop.list.rum=in.df$subject %in% c("391")
+    drop.list.rum=in.df$Study.ID %in% c("391")
     drop.count=drop.count + sum(drop.list.rum)
     dropped.subjects.list=c(dropped.subjects.list, print.dropped.subject.list(drop.list.rum))
     ## in.df = in.df[ ! drop.list, ]
@@ -552,6 +552,9 @@ if (file.exists(saved.netcc.filename) && ! force.netcc.generation) {
     cat("*** Loading pregenerated netcc array and netcc.filenames.and.subjects.df from", saved.netcc.filename, "\n")
     load(saved.netcc.filename)
 
+    cat(sprintf("*** Loaded saved netcc array with %d rows, %d columns, and %d slices (subjects)\n",
+                dim(netcc)[1], dim(netcc)[2], dim(netcc)[3]))
+
 } else {
 
     netcc.filenames.and.subjects.df=filter.nonexistant.files(build.netcc.filenames(subjects, "rsfcGraphs"), in.print.nonexistant=TRUE)
@@ -618,7 +621,7 @@ drop.subject.list=list.excluded.subjects(characteristics.df)
 ## cat("*** BEFORE removing subjects from characteristics.df", dim(characteristics.df), '\n')
 characteristics.df=characteristics.df[ ! characteristics.df$Study.ID %in% drop.subject.list, ]
 ## cat("*** AFTER removing subjects from characteristics.df", dim(characteristics.df), '\n')
-
+characteristics.df=droplevels(characteristics.df)
 
 ## drop.subject.list=paste(drop.subject.list, "_A", sep="")
 ## remove subjects from the netcc array
@@ -647,6 +650,10 @@ rm(aa)
 cat("*** Z-scoring netcc array\n")
 netcc.og=netcc
 netcc=atanh(netcc)
+
+cat("*** subject distribution is as follows:\n")
+subject.distribution=addmargins(xtabs(~ Group + Gender, data=characteristics.df))
+print(subject.distribution)
 
 threshold.correlations <- function (in.netcc, in.density=0.1) {
     subject.count=dim(in.netcc)[3]
