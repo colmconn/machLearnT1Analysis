@@ -193,15 +193,15 @@ filter.nonexistant.files <- function (in.file.list, in.print.nonexistant=FALSE) 
     return(df)
 }
 
-read.netcc.files <- function (in.netcc.filenames, in.label.names, in.matrix.type="CC") {
+read.netcc.files <- function (in.netcc.filenames, in.atlas.dt, in.matrix.type="CC") {
     dnames=list()
-    dnames[[1]] = in.label.names$FvLabel
-    dnames[[2]] = in.label.names$FvLabel
+    dnames[[1]] = in.atlas.dt$name
+    dnames[[2]] = in.atlas.dt$name
     dnames[[3]] = in.netcc.filenames$Study.ID
     ## print(dnames)
     
     netcc=array(as.numeric(NA),
-        dim=c(dim(in.label.names)[1], dim(in.label.names)[1], length(in.netcc.filenames$subject.name)),
+        dim=c(length(dnames[[1]])[1], length(dnames[[2]])[1], length(in.netcc.filenames$subject.name)),
         dimnames=dnames)
     ## cat("*** netcc array is", paste(dim(netcc)), "\n")
     for (ii in seq.int(1, length(in.netcc.filenames$subject.name))) {
@@ -215,7 +215,7 @@ read.netcc.files <- function (in.netcc.filenames, in.label.names, in.matrix.type
         cat(sprintf("+++ Reading (%04d/%04d) (matrix %s begins at line %04d) %s\r", ii, length(in.netcc.filenames$subject.name),
                     in.matrix.type, matrix.header.line.number, in.netcc.filenames[ii, "filename"]))
 
-        ff=read.table(textConnection(lines), header=FALSE, skip=matrix.header.line.number, nrows=length(in.label.names$FvLabel))        
+        ff=read.table(textConnection(lines), header=FALSE, skip=matrix.header.line.number, nrows=length(dnames[[1]]))        
         ## print(dim(ff))
         netcc[, , ii ] = as.matrix(ff)
     }
@@ -259,19 +259,6 @@ drop.subjects.from.netcc <- function (in.netcc, in.drop.subject.list){
     }
 }
 
-read.aal.atlas.label.names <- function (in.filename) {
-    cat("*** Reading", in.filename, "\n")
-    aal.labels=read.table(in.filename, header=FALSE)
-    ##    aal.labels[, 3] = apply(aal.labels, 1, function(xx) { sprintf("R%03d.%s", as.integer(xx[1]), xx[2]) })
-    aal.labels[, 3] = abbreviate(gsub("_", " ", gsub("(.*)_([LR])", "\\2_\\1", aal.labels[, 2]), fixed=TRUE))
-    ## aal.labels[, 3] = apply(aal.labels, 1, function(xx) { sprintf("R%03d", as.integer(xx[1])) })    
-    colnames(aal.labels) = c("ID", "Name", "FvLabel")
-    aal.labels$hemi=sub (".*_([LR])$", "\\1", aal.labels$Name)
-    aal.labels$label=sub ("(.*)_([LR])$", "\\1", aal.labels$Name)
-
-    return(aal.labels)
-}
-
 convert.to.feature.matrix <- function(in.netcc, in.correlation.tag) {
 
     ut=upper.tri(in.netcc[, , 1])
@@ -302,16 +289,6 @@ convert.to.feature.matrix <- function(in.netcc, in.correlation.tag) {
 
     return(fv)
 }
-
-## convert.feature.vector.labels.to.roi.names <- function (in.aal.labels, in.feature.vector.names) {
-
-##     sapply(in.feature.vector.names,
-##            function(xx) {
-##                indices=as.integer(strsplit(gsub(roi.label.regexp, "\\2 \\3", xx), " ")[[1]])
-##                paste(in.aal.labels[indices, 2], collapse=" <-> ")
-##            })
-
-## }
 
 list.excluded.subjects <- function(in.df) {
 
@@ -481,8 +458,8 @@ filter.near.zero.variance.predictors <- function (in.df, in.predictor.tag=NULL) 
 check.number.of.rois.match <- function () {
     ## check that the number of ROIs in the list of ROI names matches the
     ## number of ROI on the rows and columns dimensions of the netcc array
-    if ( ! isTRUE(all.equal(rep( dim(atlas.labels)[1], 2), dim(netcc)[1:2])) ) {
-        stop("*** The number of ROIs in the atlas (", dim(atlas.labels)[1],
+    if ( ! isTRUE(all.equal(rep( dim(atlas.dt)[1], 2), dim(netcc)[1:2])) ) {
+        stop("*** The number of ROIs in the atlas (", dim(atlas.dt)[1],
              ") does not match the number of ROIs on in the first two dimensions (",
              paste(dim(netcc)[1:2], collapse=", "),
              ") of the netcc array\n", sep="")
@@ -531,14 +508,7 @@ admin.data.dir=file.path(data.dir, "admin")
 config.data.dir=file.path(data.dir, "config")
 group.results.dir=file.path(data.dir, "Group.results")
 
-## regular expression to match the labels given to the elements in the
-## feature vector of each subject
-roi.label.regexp="(RSFC|GM|DTI)\\.R([0-9]{3})\\.R([0-9]{3})"
-
 subjects=dir(data.dir, pattern="[0-9][0-9][0-9]_A*")
-
-atlas.filename=file.path(standard.data.dir, "aal2_for_SPM12", "aal2.nocerebellum.txt")
-atlas.labels=read.aal.atlas.label.names(atlas.filename)
 
 ## before we go any further we need to deal with the issue of subject 169/300 having two IDs
 ## this subject is known as 169 in wasi.data, telomere.data, and mt.dna.data
@@ -572,6 +542,10 @@ wasi.data=fix.table(read.wasi.table(wasi.filename), "SubID")
 ## "rsfcGraphs" argument) netcc filenames that do not exist are
 ## filtered from the list
 
+atlas="brainGraph::aal2_94"
+atlas.dt=eval(parse(text=atlas))
+cat("*** Using the", atlas, "atlas\n")
+
 matrix.type="PC"
 force.netcc.generation=FALSE
 saved.netcc.filename=file.path(group.results.dir, paste("netcc", matrix.type, "Rdata", sep="."))
@@ -590,7 +564,7 @@ if (file.exists(saved.netcc.filename) && ! force.netcc.generation) {
     ## motion.exclusion.subject.list)
     
     ## build the lists of netcc filenames and read them in
-    netcc=read.netcc.files(netcc.filenames.and.subjects.df, atlas.labels, in.matrix.type=matrix.type)
+    netcc=read.netcc.files(netcc.filenames.and.subjects.df, atlas.dt, in.matrix.type=matrix.type)
     cat("*** Saving netcc array and netcc.filenames.and.subjects.df to", saved.netcc.filename, "\n")
     save(netcc, netcc.filenames.and.subjects.df, file=saved.netcc.filename)
 }
