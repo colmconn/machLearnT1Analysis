@@ -541,7 +541,7 @@ wasi.data=fix.table(read.wasi.table(wasi.filename), "SubID")
 ## "rsfcGraphs" argument) netcc filenames that do not exist are
 ## filtered from the list
 
-atlas="brainGraph::aal2_94"
+atlas="brainGraph::aal2.94"
 atlas.dt=eval(parse(text=atlas))
 cat("*** Using the", atlas, "atlas\n")
 
@@ -687,6 +687,7 @@ g <- lapply(thresholded.matrixes, function(xx) { graph_from_adjacency_matrix(xx$
 ## modality="RSFC"
 
 ## g1 <- set.brainGraph.attributes(g[[1]],
+##                                 atlas=atlas,
 ##                                 modality=modality,
 ##                                 subject=characteristics.df[1, "Study.ID"],
 ##                                 group=characteristics.df[1, "Group"])
