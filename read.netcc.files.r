@@ -494,7 +494,10 @@ threshold.correlations <- function (in.netcc, in.density=0.1) {
         ## r=in.netcc[ , , ii]
         thresh=sort(in.netcc[ , , ii][lower.tri(in.netcc[ , , ii])])[emax - in.density * emax]
         r.thresh <- ifelse(in.netcc[ , , ii] > thresh, 1, 0)
-        out[[ii]] <- list(R=in.netcc[ , , ii], P=pnorm(netcc[ , , ii]), r.thresh=r.thresh, threshold=thresh)
+        weights=in.netcc[ , , ii] * r.thresh
+        diag(weights) = 0
+        
+        out[[ii]] <- list(R=in.netcc[ , , ii], P=pnorm(netcc[ , , ii]), r.thresh=r.thresh, weights=weights, threshold=thresh)
     }
     names(out)=names(in.netcc[1, 1, ])
     return(out)
@@ -721,17 +724,20 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     }
     ## delete aa, it's no longer needed
     rm(aa)
-    
+
+    ## ##############################################################################
     ## now that all of the filtering has been done it's time to z-score the array
     cat("*** Z-scoring netcc array\n")
     netcc.og=netcc
     netcc=atanh(netcc)
     save.structures.list=append(save.structures.list, "netcc")
-    
+
+    ## ##############################################################################
     cat("*** The subject distribution is as follows:\n")
     subject.distribution=addmargins(xtabs(~ Group + Gender, data=characteristics.df))
     print(subject.distribution)
-    
+
+    ## ##############################################################################
     ## if you only want to use one density set that here to a vectro of
     ## length one
     graph.densities=densities=seq.int(0.2, 0.6, 0.01)
@@ -742,27 +748,48 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
         ifelse(length(graph.densities) > 1, "densities:", "density:"), "\n",
         str_wrap(paste (graph.densities, collapse=" "), indent=3, exdent=4, width=80) ,"\n")
 
-    ## cat("*** Enabling parallel processing\n")
-    ## library(doMC)
-    ## registerDoMC(cores = max.cpus)
-    ## registerDoMC(cores = 15)
+    ## ##############################################################################
     parallel.executation=FALSE
-    
+    if (parallel.executation) {
+        cat("*** Enabling parallel processing\n")
+        library(doMC)
+        registerDoMC(cores = max.cpus)
+        registerDoMC(cores = 15)
+    }
+
+    ## ##############################################################################
     cat("*** Thresholding correlations at", length(graph.densities),
         ifelse(length(graph.densities) > 1,
                "different densities", "density"), "for each subject\n")
     thresholded.matrices=llply(graph.densities, function(xx) { threshold.correlations(netcc, in.density=xx) }, .progress="text", .parallel=parallel.executation)
     save.structures.list=append(save.structures.list, "thresholded.matrices")
-    
-    cat("*** Creating graph at", length(graph.densities),
+
+    ## ##############################################################################
+    weighted=FALSE
+    cat("*** Creating", ifelse(weighted, "WEIGHTED", "UN-WEIGHTED"), "graphs at", length(graph.densities),
         ifelse(length(graph.densities) > 1,
                "different densities", "density"),
         "for each subject\n")
     ## now create a graph for each subject
-    g <- llply(thresholded.matrices, lapply,
-               function(xx) { graph_from_adjacency_matrix(xx$r.thresh, mode="undirected", diag=FALSE) }, .progress="text", .parallel=parallel.executation)
+    if (weighted) {
+        g <- llply(thresholded.matrices, lapply,
+                   function(xx) {
+                       graph_from_adjacency_matrix(xx$weights, mode="undirected", weighted=weighted, diag=FALSE)
+                   },
+                   .progress="text", .parallel=parallel.executation)
+    } else {
+        g <- llply(thresholded.matrices, lapply,
+                   function(xx) {
+                       graph_from_adjacency_matrix(xx$r.thresh, mode="undirected", diag=FALSE)
+                   },
+                   .progress="text", .parallel=parallel.executation)
+    }
     
+    ## ##############################################################################
     modality="RSFC"
+    cat("*** Applying set.brainGraph.attributes to each subject's graph at", length(graph.densities), "different densities\n")
+    cat("*** Starting at:", date(), "\n")
+    start=Sys.time()
     
     g1 <- set.brainGraph.attributes(g[[1]][[1]],
                                     atlas    = atlas,
@@ -775,12 +802,9 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
                                     subject  = as.character(characteristics.df[1, "Study.ID"]),
                                     group    = as.character(characteristics.df[1, "Group"]))
     
-    cat("*** Applying set.brainGraph.attributes to each subject's graph at", length(graph.densities), "different densities\n")
     ## this code will only work if g is a list (one for each density) of a
     ## list (for each subject) of graphs (lists)
-    cat("*** Starting at:", date(), "\n")
-    start=Sys.time()
-    
+
     ## g.attributes <- Map(
     ##     function(xx, yy, zz) {
     ##         llply(xx, set.brainGraph.attributes, .progress='text', .parallel=parallel.executation, atlas=atlas, modality=modality, group=yy, subject=zz)
