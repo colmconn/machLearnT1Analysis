@@ -521,10 +521,8 @@ if ( Sys.info()["sysname"] == "Darwin" ) {
 
 library(stringr)
 library(tidyr)
-library(igraph)
 library(plyr)
 library(data.table)
-library(brainGraph)
 
 study.root.dir=file.path(root.dir, "sanDiego/machLearnT1Analysis")
 standard.data.dir=file.path(study.root.dir, "standard")
@@ -568,6 +566,11 @@ wasi.data=fix.table(read.wasi.table(wasi.filename), "SubID")
 ## now read the graphs created from the RSFC analysis (note the
 ## "rsfcGraphs" argument) netcc filenames that do not exist are
 ## filtered from the list
+
+
+library(devtools)
+## library(brainGraph)
+devtools::load_all(file.path(Sys.getenv("HOME"), "src", "brainGraph"))
 
 atlas="brainGraph::aal2.94"
 atlas.dt=eval(parse(text=atlas))
@@ -749,22 +752,34 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
         str_wrap(paste (graph.densities, collapse=" "), indent=3, exdent=4, width=80) ,"\n")
 
     ## ##############################################################################
-    parallel.executation=FALSE
+    parallel.executation=TRUE
     if (parallel.executation) {
         cat("*** Enabling parallel processing\n")
         library(doMC)
-        registerDoMC(cores = max.cpus)
-        registerDoMC(cores = 15)
+        ## registerDoMC(cores = max.cpus)
+        registerDoMC(cores = 40)
+        cat("*** Using", getDoParWorkers(), "cores\n")
+        cat("*** Plyr progress bars are disabled when parallel computation is enabled\n")
+        progress.bar.type='none'        
+    } else {
+        cat("*** Plyr progress bars are set to text\n")        
+        progress.bar.type='text'
     }
-
+    
     ## ##############################################################################
     cat("*** Thresholding correlations at", length(graph.densities),
         ifelse(length(graph.densities) > 1,
                "different densities", "density"), "for each subject\n")
-    thresholded.matrices=llply(graph.densities, function(xx) { threshold.correlations(netcc, in.density=xx) }, .progress="text", .parallel=parallel.executation)
+    thresholded.matrices=llply(graph.densities, function(xx) {
+        threshold.correlations(netcc, in.density=xx) },
+        .progress=progress.bar.type, .parallel=parallel.executation)
     save.structures.list=append(save.structures.list, "thresholded.matrices")
 
     ## ##############################################################################
+
+    ## load igraph packages
+    library(igraph)
+
     weighted=FALSE
     cat("*** Creating", ifelse(weighted, "WEIGHTED", "UN-WEIGHTED"), "graphs at", length(graph.densities),
         ifelse(length(graph.densities) > 1,
@@ -776,40 +791,50 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
                    function(xx) {
                        graph_from_adjacency_matrix(xx$weights, mode="undirected", weighted=weighted, diag=FALSE)
                    },
-                   .progress="text", .parallel=parallel.executation)
+                   .progress=progress.bar.type, .parallel=parallel.executation)
     } else {
         g <- llply(thresholded.matrices, lapply,
                    function(xx) {
                        graph_from_adjacency_matrix(xx$r.thresh, mode="undirected", diag=FALSE)
                    },
-                   .progress="text", .parallel=parallel.executation)
+                   .progress=progress.bar.type, .parallel=parallel.executation)
     }
     
     ## ##############################################################################
     modality="RSFC"
     cat("*** Applying set.brainGraph.attributes to each subject's graph at", length(graph.densities), "different densities\n")
+    ## library(brainGraph)
+    
     cat("*** Starting at:", date(), "\n")
     start=Sys.time()
     
-    g1 <- set.brainGraph.attributes(g[[1]][[1]],
-                                    atlas    = atlas,
-                                    modality = modality,
-                                    subject  = as.character(characteristics.df[1, "Study.ID"]),
-                                    group    = as.character(characteristics.df[1, "Group"]))
-    g2 <- set.brainGraph.attributes(g[[length(graph.densities)]][[1]],
-                                    atlas    = atlas,
-                                    modality = modality,
-                                    subject  = as.character(characteristics.df[1, "Study.ID"]),
-                                    group    = as.character(characteristics.df[1, "Group"]))
+    ## g1 <- set.brainGraph.attributes(g[[1]][[1]],
+    ##                                 atlas    = atlas,
+    ##                                 modality = modality,
+    ##                                 subject  = as.character(characteristics.df[1, "Study.ID"]),
+    ##                                 group    = as.character(characteristics.df[1, "Group"]))
+    ## g2 <- set.brainGraph.attributes(g[[length(graph.densities)]][[1]],
+    ##                                 atlas    = atlas,
+    ##                                 modality = modality,
+    ##                                 subject  = as.character(characteristics.df[1, "Study.ID"]),
+    ##                                 group    = as.character(characteristics.df[1, "Group"]))
     
     ## this code will only work if g is a list (one for each density) of a
     ## list (for each subject) of graphs (lists)
 
-    ## g.attributes <- Map(
-    ##     function(xx, yy, zz) {
-    ##         llply(xx, set.brainGraph.attributes, .progress='text', .parallel=parallel.executation, atlas=atlas, modality=modality, group=yy, subject=zz)
-    ##     },
-    ##     g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
+    my.set.attributes = function (g, ...) g
+    
+    g.attributes <- Map(
+        function(xx, yy, zz) {
+            llply(xx, set.brainGraph.attributes,  ## my.set.attributes,          
+                  .progress=progress.bar.type,
+                  .parallel=parallel.executation,
+                  parallel=FALSE, ## to be passed to set.brainGraph.attributes
+                  atlas=atlas,
+                  modality=modality, group=yy, subject=zz)
+        },
+        g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
+
     save.structures.list=append(save.structures.list, c("g", "g.attributes"))
     end=Sys.time()
     cat("*** Finished at:", date(), "\n")
