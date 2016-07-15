@@ -478,29 +478,54 @@ filter.feature.matrix <- function(in.feature.matrix, in.p.threshold=0.01) {
     return(in.feature.matrix)
 }
 
-threshold.correlations <- function (in.netcc, in.density=0.1) {
-    subject.count=dim(in.netcc)[3]
-    N <- ncol(in.netcc[, , 1])
+
+threshold.netcc <- function (in.netcc.matrix, in.density=0.1) {
+    N <- ncol(in.netcc.matrix)
     emax <- N  * (N - 1) / 2
 
     out=list()
-    for (ii in seq.int(1, subject.count)) {
 
-        ## the following code is from corr_matrix.R in brainGraph
-        ##
-        ## try to make the data structures as similar as possible, if
-        ## not identical, so that we can use brainGraph for other
-        ## processess later if necessary
-        ## r=in.netcc[ , , ii]
-        thresh=sort(in.netcc[ , , ii][lower.tri(in.netcc[ , , ii])])[emax - in.density * emax]
-        r.thresh <- ifelse(in.netcc[ , , ii] > thresh, 1, 0)
-        weights=in.netcc[ , , ii] * r.thresh
-        diag(weights) = 0
-        
-        out[[ii]] <- list(R=in.netcc[ , , ii], P=pnorm(netcc[ , , ii]), r.thresh=r.thresh, weights=weights, threshold=thresh)
-    }
-    names(out)=names(in.netcc[1, 1, ])
+    ## the following code is from corr_matrix.R in brainGraph
+    ##
+    ## try to make the data structures as similar as possible, if
+    ## not identical, so that we can use brainGraph for other
+    ## processess later if necessary
+    thresh=sort(in.netcc.matrix[lower.tri(in.netcc.matrix)])[emax - in.density * emax]
+    r.thresh <- ifelse(in.netcc.matrix > thresh, 1, 0)
+    weights=in.netcc.matrix * r.thresh
+    diag(weights) = 0
+    
+    out <- list(R=in.netcc.matrix, P=pnorm(in.netcc.matrix), r.thresh=r.thresh, weights=weights, threshold=thresh)
+    
     return(out)
+}
+
+
+threshold.correlations <- function (in.netcc, in.graph.densities) {
+    tc =
+        foreach(sn=icount(dim(in.netcc)[3])) %dopar% {
+            foreach(gd=in.graph.densities) %do% {
+                threshold.netcc(in.netcc[, , sn], gd)
+            }}
+    ## now set the names
+    tc=lapply(tc, function (xx) { names(xx) = in.graph.densities; return(xx) })
+    names(tc)=names(in.netcc[1, 1, ])
+    
+    return(tc)
+}
+
+save.for.later <- function (..., list=character(), file=stop("'file' must be specified"), ncores=15) {    
+    zipper=suppressWarnings(system("which pigz", intern=TRUE, ignore.stderr=TRUE))
+    if (length(zipper) > 0) {
+        ## found pigz!
+        cat("*** Saving using pigz for compression\n")
+        con <- pipe(paste(zipper, "-p", ncores, ">", file), "wb")
+        save(..., list=list, file = con)
+        close(con)
+    } else {
+        cat("*** Saving using gzip for compression\n")
+        save (..., list=list, file=file)
+    }
 }
 
 ## ##################################################################################################
@@ -523,6 +548,8 @@ library(stringr)
 library(tidyr)
 library(plyr)
 library(data.table)
+library(foreach)
+library(iterators)
 
 study.root.dir=file.path(root.dir, "sanDiego/machLearnT1Analysis")
 standard.data.dir=file.path(study.root.dir, "standard")
@@ -576,6 +603,7 @@ atlas="brainGraph::aal2.94"
 atlas.dt=eval(parse(text=atlas))
 cat("*** Using the", atlas, "atlas\n")
 
+## use the partial correlation (PC) coefficients created by 3dNetCorr
 matrix.type="PC"
 force.netcc.generation=FALSE
 saved.netcc.filename=file.path(group.results.dir, paste("netcc", matrix.type, "Rdata", sep="."))
@@ -599,7 +627,8 @@ if (file.exists(saved.netcc.filename) && ! force.netcc.generation) {
     ## build the lists of netcc filenames and read them in
     netcc=read.netcc.files(netcc.filenames.and.subjects.df, atlas.dt, in.matrix.type=matrix.type)
     cat("*** Saving netcc array and netcc.filenames.and.subjects.df to", saved.netcc.filename, "\n")
-    save(netcc, netcc.filenames.and.subjects.df, file=saved.netcc.filename)
+    save.for.later
+    save.for.later(netcc, netcc.filenames.and.subjects.df, file=saved.netcc.filename)
 }
 ## check for subjects with all zero correlation matrices and then drop
 ## them
@@ -630,7 +659,7 @@ check.number.of.rois.match()
 ## feature.matrix=convert.to.feature.matrix(netcc[1:30, 1:30, 1:30], "RSFC")
 
 
-force.graph.generation=TRUE
+force.graph.generation=FALSE
 saved.graph.data.structures.filename=file.path(group.results.dir, paste("graphs", matrix.type, "Rdata", sep="."))
 if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generation) {
     cat("*** Loading pregenerated graph and asscoated data structres from", saved.graph.data.structures.filename, "\n")
@@ -758,7 +787,7 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
         library(doMC)
         ## registerDoMC(cores = max.cpus)
         registerDoMC(cores = 40)
-        cat("*** Using", getDoParWorkers(), "cores\n")
+        cat("*** Using", getDoParWorkers(), "CPU cores\n")
         cat("*** Plyr progress bars are disabled when parallel computation is enabled\n")
         progress.bar.type='none'        
     } else {
@@ -770,9 +799,17 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     cat("*** Thresholding correlations at", length(graph.densities),
         ifelse(length(graph.densities) > 1,
                "different densities", "density"), "for each subject\n")
-    thresholded.matrices=llply(graph.densities, function(xx) {
-        threshold.correlations(netcc, in.density=xx) },
-        .progress=progress.bar.type, .parallel=parallel.executation)
+
+    ## this commmented out code will yields list of densities ->
+    ## subjects -> list of matrixes describing graph
+    ##
+    ## thresholded.matrixces=threshold(netcc, graph.densities)
+    ## thresholded.matrices=llply(graph.densities, function(xx) {
+    ## threshold.correlations(netcc, in.density=xx) },
+    ## .progress=progress.bar.type, .parallel=parallel.executation)
+
+    thresholded.matrices=threshold.correlations(netcc, graph.densities)
+    
     save.structures.list=append(save.structures.list, "thresholded.matrices")
 
     ## ##############################################################################
@@ -785,7 +822,7 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
         ifelse(length(graph.densities) > 1,
                "different densities", "density"),
         "for each subject\n")
-    ## now create a graph for each subject
+    ## now create a graph for each subject at each density
     if (weighted) {
         g <- llply(thresholded.matrices, lapply,
                    function(xx) {
@@ -799,7 +836,7 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
                    },
                    .progress=progress.bar.type, .parallel=parallel.executation)
     }
-    
+ 
     ## ##############################################################################
     modality="RSFC"
     cat("*** Applying set.brainGraph.attributes to each subject's graph at", length(graph.densities), "different densities\n")
@@ -819,39 +856,44 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     ##                                 subject  = as.character(characteristics.df[1, "Study.ID"]),
     ##                                 group    = as.character(characteristics.df[1, "Group"]))
     
-    ## this code will only work if g is a list (one for each density) of a
-    ## list (for each subject) of graphs (lists)
+    ## this code will only work if g is a list (one element for each
+    ## density) of a list (for element each subject) of graphs (lists)
 
-    my.set.attributes = function (g, ...) g
+    g.attributes= foreach(dd=icount(length(g))) %do% {
+        cat(sprintf("*** Processing subject %s (%02d of %02d) at %s. %0.2f%% completed\r",
+                    names(g)[dd], dd, length(g), Sys.time(), (dd/length(g))*100))
+        
+        llply(g[[dd]], set.brainGraph.attributes,  ## my.set.attributes,          
+              .progress=progress.bar.type,
+              .parallel=parallel.executation,
+              parallel =FALSE, ## to be passed to set.brainGraph.attributes
+              atlas    =atlas,
+              modality =modality,
+              group    =as.character(characteristics.df[dd, "Group"]),
+              subject  =as.character(characteristics.df[dd, "Study.ID"])
+              )
+    }
     
-    g.attributes <- Map(
-        function(xx, yy, zz) {
-            llply(xx, set.brainGraph.attributes,  ## my.set.attributes,          
-                  .progress=progress.bar.type,
-                  .parallel=parallel.executation,
-                  parallel=FALSE, ## to be passed to set.brainGraph.attributes
-                  atlas=atlas,
-                  modality=modality, group=yy, subject=zz)
-        },
-        g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
+    ## g.attributes <- Map(
+    ##     function(xx, yy, zz) {
+    ##         llply(xx, set.brainGraph.attributes,  ## my.set.attributes,          
+    ##               .progress=progress.bar.type,
+    ##               .parallel=parallel.executation,
+    ##               parallel=FALSE, ## to be passed to set.brainGraph.attributes
+    ##               atlas=atlas,
+    ##               modality=modality, group=yy, subject=zz)
+    ##     },
+    ##     g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
 
     save.structures.list=append(save.structures.list, c("g", "g.attributes"))
     end=Sys.time()
     cat("*** Finished at:", date(), "\n")
     suppressMessages(library(chron))
-    cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")
-    
-    
-    ## code below can be used if g is a list (for each subject) of graphs
-    ## cat("*** Applying set.brainGraph.attributes to each subject's graph\n")
-    ## g <- Map(function(xx, yy, zz) {
-    ##     do.call(set.brainGraph.attributes, list(xx, atlas=atlas, modality=modality, group=yy, subject=zz))    
-    ## },
-    ##          g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
-    
-    ##cat("*** Saving the following data structures will be saved to", saved.graph.data.structures.filename, "\n")
-    ###cat(paste("+++ ", unlist(save.structures.list), "\n", sep=""), sep="")
-    ##save(list=unlist(save.structures.list), file=saved.graph.data.structures.filename)
+    cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")    
+        
+    cat("*** Saving the following data structures will be saved to", saved.graph.data.structures.filename, "\n")
+    cat(paste("+++ ", unlist(save.structures.list), "\n", sep=""), sep="")
+    save.for.later(list=unlist(save.structures.list), file=saved.graph.data.structures.filename)
     
 }
 ## now scale the columns
