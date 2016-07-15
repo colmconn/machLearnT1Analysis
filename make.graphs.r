@@ -627,7 +627,6 @@ if (file.exists(saved.netcc.filename) && ! force.netcc.generation) {
     ## build the lists of netcc filenames and read them in
     netcc=read.netcc.files(netcc.filenames.and.subjects.df, atlas.dt, in.matrix.type=matrix.type)
     cat("*** Saving netcc array and netcc.filenames.and.subjects.df to", saved.netcc.filename, "\n")
-    save.for.later
     save.for.later(netcc, netcc.filenames.and.subjects.df, file=saved.netcc.filename)
 }
 ## check for subjects with all zero correlation matrices and then drop
