@@ -661,7 +661,7 @@ check.number.of.rois.match()
 force.graph.generation=FALSE
 saved.graph.data.structures.filename=file.path(group.results.dir, paste("graphs", matrix.type, "Rdata", sep="."))
 if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generation) {
-    cat("*** Loading pregenerated graph and asscoated data structres from", saved.graph.data.structures.filename, "\n")
+    cat("*** Loading pregenerated graph and associated data structres from", saved.graph.data.structures.filename, "\n")
     load(saved.graph.data.structures.filename)
     
     cat("*** Loaded saved graph structures\n")
@@ -758,7 +758,7 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
 
     ## ##############################################################################
     ## now that all of the filtering has been done it's time to z-score the array
-    cat("*** Z-scoring netcc array\n")
+    cat("*** Applying Fisher's r-to-z scoring to the netcc array\n")
     netcc.og=netcc
     netcc=atanh(netcc)
     save.structures.list=append(save.structures.list, "netcc")
@@ -771,7 +771,7 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     ## ##############################################################################
     ## if you only want to use one density set that here to a vectro of
     ## length one
-    graph.densities=densities=seq.int(0.2, 0.6, 0.01)
+    graph.densities=densities=seq.int(0.1, 0.9, 0.01)
     ## graph.densities=densities=0.05
     save.structures.list=append(save.structures.list, "graph.densities")
     cat("*** Creating graphs for each subject at the following",
