@@ -677,16 +677,27 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
 
     ## a bunch of sanity check to ensure the dimensions of various
     ## data strcutures match
-    if (length(graph.densities) != length(g)) {
-        cat("*** The number of graph densities (", length(graph.densities), ") and the number of lists for those densities(", length(graph.densities), ") does not match\n")
+    if (dim(characteristics.df)[1] != length(g)) {
+        cat("*** The number of subjects (",
+            length(dim(characteristics.df)[1]),
+            ") and the number of subjects (",
+            length(g), ") does not match\n", sep="")
     }
 
-    if (dim(characteristics.df)[1] != length(g[[1]])) {
-        cat("*** The number of subjects (", length(dim(characteristics.df)[1]), ") and the number of subjects (", length(g[[1]]), ") does not match\n")
+    if (length(graph.densities) != length(g[[1]])) {
+        cat("*** The number of graph densities (",
+            length(graph.densities),
+            ") and the number of lists for those densities (",
+            length(g[[1]]),
+            ") does not match\n", sep="")
     }
 
-    if (length(thresholded.matrices) != length(graph.densities)) {
-        cat("*** The number of thresholded matrices (", length(thresholded.matrices), ") and the number of graph densities(", length(graph.densities), ") does not match\n")
+    if (length(thresholded.matrices) != dim(characteristics.df)[1]) {
+        cat("*** The number of thresholded matrices (",
+            length(thresholded.matrices),
+            ") and the number of subjects (",
+            dim(characteristics.df)[1],
+            ") does not match\n")
     }
 
     ## the data frames and arrays
@@ -771,7 +782,7 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     ## ##############################################################################
     ## if you only want to use one density set that here to a vectro of
     ## length one
-    graph.densities=densities=seq.int(0.1, 0.9, 0.01)
+    graph.densities=densities=seq.int(0.1, 0.6, 0.01)
     ## graph.densities=densities=0.05
     save.structures.list=append(save.structures.list, "graph.densities")
     cat("*** Creating graphs for each subject at the following",
@@ -863,22 +874,24 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
                     names(g)[dd], dd, length(g), Sys.time(), (dd/length(g))*100))
         
         llply(g[[dd]], set.brainGraph.attributes,  ## my.set.attributes,          
-              .progress=progress.bar.type,
-              .parallel=parallel.executation,
-              parallel =FALSE, ## to be passed to set.brainGraph.attributes
-              atlas    =atlas,
-              modality =modality,
-              group    =as.character(characteristics.df[dd, "Group"]),
-              subject  =as.character(characteristics.df[dd, "Study.ID"])
+              .progress   = progress.bar.type,
+              .parallel   = parallel.executation, ## argument to llply
+              use.parallel= FALSE, ## to be passed to set.brainGraph.attributes
+              atlas       = atlas,
+              modality    = modality,
+              group       = as.character(characteristics.df[dd, "Group"]),
+              subject     = as.character(characteristics.df[dd, "Study.ID"])
               )
     }
+
+    lapply(g.attributes, function (xx) { lapply(xx, function (yy) { c("Group", "name") %in% names( graph_attr(yy)) }) })
     
     ## g.attributes <- Map(
     ##     function(xx, yy, zz) {
     ##         llply(xx, set.brainGraph.attributes,  ## my.set.attributes,          
     ##               .progress=progress.bar.type,
     ##               .parallel=parallel.executation,
-    ##               parallel=FALSE, ## to be passed to set.brainGraph.attributes
+    ##               use.parallel=FALSE, ## to be passed to set.brainGraph.attributes
     ##               atlas=atlas,
     ##               modality=modality, group=yy, subject=zz)
     ##     },
@@ -890,7 +903,7 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     suppressMessages(library(chron))
     cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")    
         
-    cat("*** Saving the following data structures will be saved to", saved.graph.data.structures.filename, "\n")
+    cat("*** Saving the following data structures to", saved.graph.data.structures.filename, "\n")
     cat(paste("+++ ", unlist(save.structures.list), "\n", sep=""), sep="")
     save.for.later(list=unlist(save.structures.list), file=saved.graph.data.structures.filename)
     
