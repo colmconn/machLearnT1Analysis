@@ -666,7 +666,6 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     
     cat("*** Loaded saved graph structures\n")
     
-    
     cat("*** The subject distribution is as follows:\n")
     subject.distribution=addmargins(xtabs(~ Group + Gender, data=characteristics.df))
     print(subject.distribution)
@@ -709,6 +708,12 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     }
     ## delete aa, it's no longer needed
     rm(aa)
+
+    if (is.null(names(g.attributes))) {
+        cat("*** Setting names on g.attributes\n")
+        names(g.attributes) = names(g)
+        g.attributes = lapply(g.attributes, function(xx) { names(xx) = names(g[[1]]) ; return(xx) })
+    }
     
 } else {
 
@@ -884,8 +889,11 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
               )
     }
 
-    lapply(g.attributes, function (xx) { lapply(xx, function (yy) { c("Group", "name") %in% names( graph_attr(yy)) }) })
-    
+    ## now make sure that g.attributes has the same names as g for each subject and density
+    cat("*** Setting names on g.attributes\n")
+    names(g.attributes) = names(g)
+    g.attributes = lapply(g.attributes, function(xx) { names(xx) = names(g[[1]]) ; return(xx) })
+   
     ## g.attributes <- Map(
     ##     function(xx, yy, zz) {
     ##         llply(xx, set.brainGraph.attributes,  ## my.set.attributes,          
@@ -908,6 +916,8 @@ if (file.exists(saved.graph.data.structures.filename) && ! force.graph.generatio
     save.for.later(list=unlist(save.structures.list), file=saved.graph.data.structures.filename)
     
 }
+
+
 ## now scale the columns
 ## graph.feature.columns=grep(roi.label.regexp, colnames(feature.df))
 ## feature.df[ , graph.feature.columns] = scale( feature.df[ , graph.feature.columns] ) 
