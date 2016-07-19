@@ -286,8 +286,10 @@ parallel.executation=TRUE
 if (parallel.executation) {
     cat("*** Enabling parallel processing\n")
     library(doMC)
-    ## registerDoMC(cores = max.cpus)
-    registerDoMC(cores = 51)
+    ## why 51? because there are 51 densities run per subject. It's
+    ## only choosen to get as many densities processed in parallel as
+    ## possible
+    registerDoMC(cores = min(51, max.cpus))
     cat("*** Using", getDoParWorkers(), "CPU cores\n")
     cat("*** Plyr progress bars are disabled when parallel computation is enabled\n")
     progress.bar.type='none'        
