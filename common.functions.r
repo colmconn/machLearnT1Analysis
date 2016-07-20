@@ -5,7 +5,7 @@ pigz.save <- function (..., list=character(), file=stop("'file' must be specifie
         cat("*** Saving using pigz for compression\n")
         con <- pipe(paste(zipper, "-p", ncores, ">", file), "wb")
         save(..., list=list, file = con)
-        close(con)
+        on.exit(close(con))
     } else {
         cat("*** Saving using gzip for compression\n")
         save (..., list=list, file=file)
