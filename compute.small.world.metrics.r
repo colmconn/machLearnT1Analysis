@@ -7,20 +7,6 @@ if (! exists("g.attributes") ) {
 
 devtools::load_all(file.path(Sys.getenv("HOME"), "src", "brainGraph"))
 
-pigz.load <- function (file, envir = parent.frame(), verbose=FALSE, ncores=15) {    
-    zipper=suppressWarnings(system("which pigz", intern=TRUE, ignore.stderr=TRUE))
-    if (length(zipper) > 0) {
-        ## found pigz!
-        if (verbose) cat("*** Loading using pigz for decompression\n")
-        con <- pipe(paste(zipper, "-dc", "-p", ncores, "<", file), "rb")
-        load(file = con, envir=envir, verbose=verbose)
-        on.exit(close(con))
-    } else {
-        if (verbose) cat("*** Loading using gzip for decompression\n")
-        load (file=file, envir=envir, verobse=verobse)
-    }
-}
-
 load.saved.data.structures <- function () {
     cat("*** Loading pregenerated graph and associated data structres from", saved.graph.data.structures.filename, "\n")
     pigz.load(saved.graph.data.structures.filename, envir = parent.frame(), verbose = TRUE)
