@@ -615,7 +615,7 @@ if (file.exists(saved.netcc.filename) && ! force.netcc.generation) {
     ## build the lists of netcc filenames and read them in
     netcc=read.netcc.files(netcc.filenames.and.subjects.df, atlas.dt, in.matrix.type=matrix.type)
     cat("*** Saving netcc array and netcc.filenames.and.subjects.df to", saved.netcc.filename, "\n")
-    save.for.later(netcc, netcc.filenames.and.subjects.df, file=saved.netcc.filename)
+    pigz.save(netcc, netcc.filenames.and.subjects.df, file=saved.netcc.filename)
 }
 ## check for subjects with all zero correlation matrices and then drop
 ## them
@@ -844,7 +844,7 @@ cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")
 
 cat("*** Saving the following data structures to", saved.graph.data.structures.filename, "\n")
 cat(paste("+++ ", unlist(save.structures.list), "\n", sep=""), sep="")
-save.for.later(list=unlist(save.structures.list), file=saved.graph.data.structures.filename)
+pigz.save(list=unlist(save.structures.list), file=saved.graph.data.structures.filename)
 
 
 
