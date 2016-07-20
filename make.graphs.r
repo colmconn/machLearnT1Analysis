@@ -514,20 +514,6 @@ threshold.correlations <- function (in.netcc, in.graph.densities) {
     return(tc)
 }
 
-save.for.later <- function (..., list=character(), file=stop("'file' must be specified"), ncores=15) {    
-    zipper=suppressWarnings(system("which pigz", intern=TRUE, ignore.stderr=TRUE))
-    if (length(zipper) > 0) {
-        ## found pigz!
-        cat("*** Saving using pigz for compression\n")
-        con <- pipe(paste(zipper, "-p", ncores, ">", file), "wb")
-        save(..., list=list, file = con)
-        close(con)
-    } else {
-        cat("*** Saving using gzip for compression\n")
-        save (..., list=list, file=file)
-    }
-}
-
 ## ##################################################################################################
 ## END OF FUNCITONS
 ## ##################################################################################################
@@ -543,6 +529,8 @@ if ( Sys.info()["sysname"] == "Darwin" ) {
     cat(paste("Sorry can't set data directories for this computer\n"))
     max.cpus=NA
 }
+
+source("common.functions.r")
 
 library(stringr)
 library(tidyr)
