@@ -71,7 +71,7 @@ load.saved.data.structures <- function () {
     rm(aa)
 }
 
-simulate.random.networks <- function (in.g, N, compress.rds=TRUE, ...) {
+simulate.random.networks <- function (in.g, N, compress.rds=TRUE, start.at.subject=1, end.at.subject=length(in.g), ...) {
     if ( ! all(unlist(
         lapply(in.g,
                function (aa) {
@@ -91,15 +91,27 @@ simulate.random.networks <- function (in.g, N, compress.rds=TRUE, ...) {
         stop("*** Each of the density elements for ach subject must have names corresponding to the density in question\n")
     }
 
+    if (start.at.subject < 1) {
+        stop(paste("*** Subject enumeration starts at 1 not", start.at.subject, "\n"))
+    }
+
+    if (end.at.subject > length(in.g)) {
+        stop(paste("*** Subject enumeration ends at", length(in.g), "not", end.at.subject, "\n"))
+    }
+
+    subject.sequence=seq.int(start.at.subject, end.at.subject)
+    subject.count=length(subject.sequence)
+    cat("*** Enumerating over", subject.count, "subjects\n")
+    
     suppressMessages(library(chron))
  
     begin.at=Sys.time()
     cat(sprintf("*** Starting simulations of random networks at %s\n", begin.at))
    
-    phi.norm <- foreach (ss = icount(length(in.g))) %do% {
+    phi.norm <- foreach (ss = iter(subject.sequence)) %do% {
         start=Sys.time()
         cat(sprintf("*** Started subject %s (%02d of %02d) at %s. ",
-                    names(in.g)[ss], ss, length(in.g), start))
+                    names(in.g)[ss], ss-(start.at.subject-1), subject.count, start))
         ## set the subject name
         subject.name=names(in.g)[ss]
         
@@ -117,7 +129,7 @@ simulate.random.networks <- function (in.g, N, compress.rds=TRUE, ...) {
         end=Sys.time()
         
         time.taken=format(as.chron(end) - as.chron(start))
-        cat (sprintf("Ended at %s. Time taken %s. %0.2f%% completed\n", end, time.taken, (ss/length(in.g))*100))
+        cat (sprintf("Ended at %s. Time taken %s. %0.2f%% completed\n", end, time.taken, ((ss-(start.at.subject-1))/subject.count)*100))
     }
 
     end.at=Sys.time()
@@ -248,6 +260,8 @@ if ( Sys.info()["sysname"] == "Darwin" ) {
     max.cpus=NA
 }
 
+source("common.functions.r")
+
 library(plyr)
 library(data.table)
 library(foreach)
@@ -309,8 +323,8 @@ if (parallel.executation) {
 ## rand <- sim.rand.graph.par(aa[[1]][[1]], 100)
 ## tt=small.world.properties(aa, 100, clustering=FALSE, compress.rds=FALSE)
 
-phi.norm=simulate.random.networks(g.attributes, 100, clustering=FALSE, compress.rds=FALSE)
-uu=compute.small.world.metrics(g.attributes, 100, compress.rds=FALSE)
+phi.norm=simulate.random.networks(g.attributes, 100, clustering=FALSE, compress.rds=FALSE, start.at.subject=35)
+small.world.metrics=compute.small.world.metrics(g.attributes, 100, compress.rds=FALSE)
 ## add in the rich club statistics for compatability with
 ## analysis_random_graphs from brainGraph
-uu$rich = phi.norm
+small.world.metrics$rich = phi.norm
