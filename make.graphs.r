@@ -789,8 +789,8 @@ modality="RSFC"
 cat("*** Applying set.brainGraph.attributes to each subject's graph at", length(graph.densities), "different densities\n")
 ## library(brainGraph)
 
-cat("*** Starting at:", date(), "\n")
-start=Sys.time()
+begin.at=Sys.time()
+cat(sprintf("***  Starting at %s\n", begin.at))
 
 ## g1 <- set.brainGraph.attributes(g[[1]][[1]],
 ##                                 atlas    = atlas,
@@ -827,6 +827,9 @@ g.attributes= foreach(dd=icount(length(g))) %do% {
 
     ret.graphs
 }
+end.at=Sys.time()
+total.time.taken=format(as.chron(end.at) - as.chron(begin.at))
+cat (sprintf("*** Ended setting brainGraph attributes at %s. Time taken %s\n", end, total.time.taken))
 
 ## now make sure that g.attributes has the same names as g for each subject and density
 cat("*** Setting names on g.attributes\n")
@@ -880,9 +883,6 @@ print(addmargins(xtabs(~ Study.ID + density, data=subject.to.density)))
 ##     g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
 
 save.structures.list=append(save.structures.list, c("g", "g.attributes", "actual.densities", "subject.to.density"))
-end=Sys.time()
-cat("*** Finished at:", date(), "\n")
-cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")    
 
 cat("*** Saving the following data structures to", saved.graph.data.structures.filename, "\n")
 cat(paste("+++ ", unlist(save.structures.list), "\n", sep=""), sep="")
