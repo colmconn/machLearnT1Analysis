@@ -762,6 +762,7 @@ save.structures.list=append(save.structures.list, "thresholded.matrices")
 
 ## load igraph packages
 library(igraph)
+library(chron)
 
 weighted=FALSE
 cat("*** Creating", ifelse(weighted, "WEIGHTED", "UN-WEIGHTED"), "graphs at", length(graph.densities),
@@ -806,10 +807,11 @@ start=Sys.time()
 ## density) of a list (for element each subject) of graphs (lists)
 
 g.attributes= foreach(dd=icount(length(g))) %do% {
-    cat(sprintf("*** Processing subject %s (%02d of %02d) at %s. %0.2f%% completed\r",
-                names(g)[dd], dd, length(g), Sys.time(), (dd/length(g))*100))
+    start=Sys.time()
+    cat(sprintf("*** Started subject %s (%03d of %03d) at %s. ",
+                names(g)[dd], dd, length(g), start))
     
-    llply(g[[dd]], set.brainGraph.attributes,  ## my.set.attributes,          
+    ret.graphs=llply(g[[dd]], set.brainGraph.attributes,  ## my.set.attributes,          
           .progress   = progress.bar.type,
           .parallel   = parallel.executation, ## argument to llply
           use.parallel= FALSE, ## to be passed to set.brainGraph.attributes
@@ -818,12 +820,53 @@ g.attributes= foreach(dd=icount(length(g))) %do% {
           group       = as.character(characteristics.df[dd, "Group"]),
           subject     = as.character(characteristics.df[dd, "Study.ID"])
           )
+    end=Sys.time()
+    
+    time.taken=format(as.chron(end) - as.chron(start))
+    cat (sprintf("Ended at %s. Time taken %s. %0.2f%% completed\n", end, time.taken, (dd/length(g))*100))
+
+    ret.graphs
 }
 
 ## now make sure that g.attributes has the same names as g for each subject and density
 cat("*** Setting names on g.attributes\n")
 names(g.attributes) = names(g)
-g.attributes = lapply(g.attributes, function(xx) { names(xx) = names(g[[1]]) ; return(xx) })
+      
+## don't set densities as names of list elements since the density of
+## the graph may not exactly the same (due to rounding) as the density
+## threshold used to threshold the matrices. The buest way to get a
+## graph's density is to apply the igraph::graph.density function to a
+## graph of get the density attribute (set by
+## set.brainGraph.attributes) from the graph itself
+##g.attributes = lapply(g.attributes, function(xx) { names(xx) = names(g[[1]]) ; return(xx) })
+
+cat("*** Rounding graph density value to 2 decimal places\n")
+g.attributes = lapply(g.attributes, 
+    function(ss) {
+        lapply(ss,
+               function (gg) {
+                   gg$density = round(gg$density, 2)
+                   return(gg)
+               })
+    })
+
+actual.densities=lapply(g.attributes, function(xx) {
+    vapply(xx, function(yy) { yy$density }, numeric(1), USE.NAMES=FALSE)
+})
+
+
+subject.to.density=do.call(rbind, lapply(seq_along(actual.densities),
+    function(ii) {
+        data.frame("Study.ID"=
+                       rep(names(actual.densities)[ii],
+                           length(actual.densities[[ii]])),
+                   "density" = actual.densities[[ii]])
+    }))
+
+cat("*** Table of density threshold per subject\n")
+cat("*** Columns should add to", length(g.attributes), "\n")
+cat("*** Rows should add to", length(graph.densities), "\n")
+print(addmargins(xtabs(~ Study.ID + density, data=subject.to.density)))
 
 ## g.attributes <- Map(
 ##     function(xx, yy, zz) {
@@ -836,17 +879,14 @@ g.attributes = lapply(g.attributes, function(xx) { names(xx) = names(g[[1]]) ; r
 ##     },
 ##     g, as.list(as.character(characteristics.df$Group)), as.list(as.character(characteristics.df$Study.ID)))
 
-save.structures.list=append(save.structures.list, c("g", "g.attributes"))
+save.structures.list=append(save.structures.list, c("g", "g.attributes", "actual.densities", "subject.to.density"))
 end=Sys.time()
 cat("*** Finished at:", date(), "\n")
-suppressMessages(library(chron))
 cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")    
 
 cat("*** Saving the following data structures to", saved.graph.data.structures.filename, "\n")
 cat(paste("+++ ", unlist(save.structures.list), "\n", sep=""), sep="")
 pigz.save(list=unlist(save.structures.list), file=saved.graph.data.structures.filename)
-
-
 
 
 ## now scale the columns
