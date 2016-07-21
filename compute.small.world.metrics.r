@@ -73,13 +73,14 @@ simulate.random.networks <- function (in.g, N, compress.rds=TRUE, start.at.subje
         stop("*** Elements of in.g must have names corresponding to the subject IDs\n")
     }
 
-    if ( ! all( sapply(g.attributes, function(xx) { all( sapply(xx, function(yy) { is.null(names(yy))   } ) )} ) )  ) {
-        stop("*** Each of the density elements for ach subject must have names corresponding to the density in question\n")
-    }
-
     if (start.at.subject < 1) {
         stop(paste("*** Subject enumeration starts at 1 not", start.at.subject, "\n"))
     }
+
+    if (start.at.subject > length(in.g)) {
+        stop(paste("*** Subject enumeration cannot start at", start.at.subject, "when there are only", length(in.g), "subjects\n"))
+    }
+ 
 
     if (end.at.subject > length(in.g)) {
         stop(paste("*** Subject enumeration ends at", length(in.g), "not", end.at.subject, "\n"))
@@ -96,7 +97,7 @@ simulate.random.networks <- function (in.g, N, compress.rds=TRUE, start.at.subje
    
     phi.norm <- foreach (ss = iter(subject.sequence)) %do% {
         start=Sys.time()
-        cat(sprintf("*** Started subject %s (%02d of %02d) at %s. ",
+        cat(sprintf("*** Started subject %s (%03d of %03d) at %s. ",
                     names(in.g)[ss], ss-(start.at.subject-1), subject.count, start))
         ## set the subject name
         subject.name=names(in.g)[ss]
@@ -131,10 +132,6 @@ compute.small.world.metrics <- function (in.g, N, compress.rds=TRUE) {
         stop("*** Elements of in.g must have names corresponding to the subject IDs\n")
     }
 
-    if ( ! all( sapply(g.attributes, function(xx) { all( sapply(xx, function(yy) { is.null(names(yy))   } ) )} ) )  ) {
-        stop("*** Each of the density elements for ach subject must have names corresponding to the density in question\n")
-    }
-
     ## Get all small-worldness and random measures, all thresholds
     ## ###########################################################
     ## groups <- covars[, levels(Group)]
@@ -164,7 +161,6 @@ compute.small.world.metrics <- function (in.g, N, compress.rds=TRUE) {
     start=Sys.time()
     cat(sprintf("*** Starting to compute small world network metrics for %03d subjects at %s. ",
                 length(in.g),  start))
-    densities <- names(in.g[[1]])
 
     ##ss is the subject iterator
     ret.vals = foreach (ss = icount(length(in.g)), .combine='comb', .multicombine=TRUE,
@@ -172,6 +168,13 @@ compute.small.world.metrics <- function (in.g, N, compress.rds=TRUE) {
         subject.name=names(in.g)[ss]
         subjects.group=as.character(characteristics.df[characteristics.df$Study.ID == subject.name, "Group"])
 
+        ## get the densities for each subject from thier graphs not
+        ## from names on the list of densities (which are no longer
+        ## ste by make.graphs.r), doing the latter can cause problems
+        ## when thresholds are not rounded exactly to match the list
+        ## of graph.densities originally used in make.graphs.r
+        densities=vapply(in.g[[ss]], function(yy) { yy$density }, numeric(1), USE.NAMES=FALSE)
+        
         ## the slicing at then end of the next statement ensures that
         ## we only take as many files as there are densities. We do
         ## this because the glob will match all files irrespective of
@@ -209,6 +212,7 @@ compute.small.world.metrics <- function (in.g, N, compress.rds=TRUE) {
     }
 
     end=Sys.time()
+    suppressMessages(library(chron))
     time.taken=format(as.chron(end) - as.chron(start))
     cat (sprintf("Ended at %s. Time taken %s.\n", end, time.taken))
     
@@ -302,15 +306,25 @@ if (parallel.executation) {
 ## something quick to work with for testing purposes
 ## aa=lapply(g.attributes[1:3], function (xx) xx[1:4])
 
-## pick only the first 4 subjects and all fo their densities
+## pick only the first 4 subjects and all of their densities
 ## aa=g.attributes[1:4]
 
 ## small.world.properties(aa, 100)
 ## rand <- sim.rand.graph.par(aa[[1]][[1]], 100)
 ## tt=small.world.properties(aa, 100, clustering=FALSE, compress.rds=FALSE)
-
-phi.norm=simulate.random.networks(g.attributes, 100, clustering=FALSE, compress.rds=FALSE, start.at.subject=35)
+phi.norm=simulate.random.networks(g.attributes, 100, clustering=FALSE, compress.rds=FALSE, start.at.subject=1)
 small.world.metrics=compute.small.world.metrics(g.attributes, 100, compress.rds=FALSE)
 ## add in the rich club statistics for compatability with
 ## analysis_random_graphs from brainGraph
-small.world.metrics$rich = phi.norm
+if (exists("phi.norm"))
+    small.world.metrics$rich = phi.norm
+
+cat("*** Table of density threshold per subject\n")
+cat("*** Columns should add to", length(g.attributes), "\n")
+cat("*** Rows should add to", length(graph.densities[[1]]), "\n")
+print(addmargins(xtabs(~ Study.ID + density, data=small.world.metrics$small.dt)))
+
+small.world.metrics.filename=file.path(group.results.dir, paste("small.world.metrics", "Rdata", sep="."))
+cat("*** Saving small.world.metrics to", small.world.metrics.filename, "\n")
+pigz.save(small.world.metrics, file=small.world.metrics.filename)
+
