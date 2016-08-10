@@ -1,0 +1,460 @@
+# Sample specification file for reviewscans.bash
+# David Perlman, 2012 Jan 12
+
+
+TITLE RSFC Overlayed on T1 Brains in MNI Space created Only by AFNI
+# This is the title that will appear at the top of the resulting web page
+# Giving this more than once probably won't make it crash, but it won't do any good
+## DATADIR /Volumes/opt/mriAnalyses/MDD/data
+DATADIR /data/sanDiego/machLearnT1Analysis/data
+# This is the directory that the subject folders are in.
+SUBDIR afniRsfcPreprocessed
+# This contains any path that should be followed under the subject folder to find the data.
+# The file will be at $DATADIR/$subj/$SUBDIR/$filename
+## OUTDIR /Volumes/opt/mriAnalyses/MDD/data/structural_review_html
+OUTDIR /data/sanDiego/machLearnT1Analysis/data/rsfc_t1_afni_mni_space
+# This is where the outputs go.  This directory will be created.
+# If it exists already, we'll give it a number.
+# If you give this more than once, or not at the beginning, this whole thing won't work.
+#UNDERLAY ${SUBJ}_1_T1High+tlrc
+# This is the name of the underlay file to use for rendering the image.
+# For afni format files, leave off the +orig or +tlrc.
+# For .nii files, give the full filename.
+COLORSCALE Spectrum:yellow_to_cyan
+# This is the name of the colorscale to use, as the names appear in the afni viewer.
+OPACITY 6
+# This is the opacity of the functional map on top of the anatomical underlay.
+# Can be 0-9.  Default is 9, full opacity.  You don't need to give this if you want to use the default.
+THRESHTYPE raw
+# This tells you whether the threshold is given as a "raw" value in the chosen brik,
+# or as a calculated "p"-value, which requires the brik to have proper statistical parameters associated with it
+RANGE 0
+# The colorscale will run over the colorscale_subbrik values in the range -RANGE to +RANGE.
+# If this is not given, or set to zero, then range is calculated automatically for each individual image.
+# You might not want that if you want to be able to compare images with each other.
+# Don't give this keyword with a blank value, that will screw things up.
+VIEW tlrc
+# This tells you whether to set the afni viewer to "orig" or "tlrc" view.
+# If your images came from afni processing, you'll get better results with tlrc,
+# because they will be visually comparable across subjects.
+# If all the images come from the same scan session then it doesn't matter.
+# If your input images were all registered to atlas space already, in some other program,
+# then use orig for good results.
+#
+# Each one of these specifies the image for one column of the output.
+# Here we set it up for five columns in the output table.
+# The format is filename colorscale_subbrik thresh_subbrik slice_direction threshold xcoord ycoord zcoord
+#VIEW tlrc
+UNDERLAY     anat_final.${SUBJ}+tlrc.HEAD
+## OVERLAY      NO_OVERLAY
+OVERLAY	     final_epi_vr_base_min_outlier+tlrc.HEAD
+
+RENDERIMAGE RSFC_Vol0 0 0 axialimage 0 0.5 9.5 -22.5
+RENDERIMAGE RSFC_Vol0 0 0 axialimage 0 0.5 9.5 2.5
+RENDERIMAGE RSFC_Vol0 0 0 axialimage 0 0.5 9.5 24.5
+
+RENDERIMAGE RSFC_Vol0 0 0 sagittalimage 0 -24.5 9.5 2.5
+RENDERIMAGE RSFC_Vol0 0 0 sagittalimage 0 0.5 9.5 2.5
+RENDERIMAGE RSFC_Vol0 0 0 sagittalimage 0 24.5 9.5 2.5
+
+RENDERIMAGE RSFC_Vol0 0 0 coronalimage 0 0.5 -15.5 2.5
+RENDERIMAGE RSFC_Vol0 0 0 coronalimage 0 0.5 9.5 2.5
+RENDERIMAGE RSFC_Vol0 0 0 coronalimage 0 0.5 34.5 2.5
+
+
+# Here begins the list of subject directories
+
+105_A
+106_A
+107_A
+108_A
+109_A
+111_A
+112_A
+113_A
+114_A
+116_A
+118_A
+119_A
+120_A
+121_A
+122_A
+123_A
+124_A
+125_A
+126_A
+127_A
+130_A
+131_A
+132_A
+133_A
+134_A
+135_A
+136_A
+137_A
+138_A
+139_A
+140_A
+141_A
+142_A
+143_A
+144_A
+145_A
+146_A
+147_A
+148_A
+149_A
+150_A
+151_A
+152_A
+153_A
+154_A
+155_A
+156_A
+157_A
+158_A
+159_A
+160_A
+161_A
+162_A
+163_A
+164_A
+165_A
+167_A
+168_A
+300_A
+301_A
+302_A
+303_A
+304_A
+306_A
+307_A
+308_A
+309_A
+310_A
+311_A
+312_A
+313_A
+314_A
+315_A
+316_A
+317_A
+318_A
+319_A
+320_A
+321_A
+322_A
+323_A
+324_A
+325_A
+326_A
+328_A
+329_A
+330_A
+331_A
+332_A
+333_A
+334_A
+335_A
+336_A
+337_A
+338_A
+339_A
+341_A
+342_A
+343_A
+344_A
+345_A
+346_A
+347_A
+348_A
+349_A
+350_A
+351_A
+353_A
+354_A
+355_A
+356_A
+357_A
+358_A
+359_A
+360_A
+361_A
+362_A
+363_A
+364_A
+365_A
+366_A
+367_A
+368_A
+369_A
+370_A
+371_A
+372_A
+373_A
+374_A
+376_A
+377_A
+378_A
+380_A
+382_A
+386_A
+389_A
+390_A
+391_A
+392_A
+393_A
+395_A
+396_A
+397_A
+398_A
+399_A
+400_A
+401_A
+402_A
+403_A
+404_A
+405_A
+406_A
+407_A
+409_A
+410_A
+411_A
+412_A
+413_A
+414_A
+415_A
+417_A
+418_A
+419_A
+420_A
+421_A
+422_A
+423_A
+424_A
+425_A
+
+## time A B and C
+
+# 324_B
+# 105_A
+# 106_A
+# 106_C
+# 107_A
+# 108_A
+# 109_A
+# 111_A
+# 111_C
+# 112_A
+# 112_C
+# 113_A
+# 114_A
+# 116_A
+# 117_C
+# 118_A
+# 118_C
+# 119_A
+# 120_A
+# 120_C
+# 121_A
+# 122_A
+# 123_A
+# 124_A
+# 125_A
+# 126_A
+# 127_A
+# 130_A
+# 131_A
+# 132_A
+# 133_A
+# 134_A
+# 135_A
+# 136_A
+# 137_A
+# 138_A
+# 139_A
+# 140_A
+# 141_A
+# 142_A
+# 143_A
+# 144_A
+# 144_C
+# 145_A
+# 146_A
+# 147_A
+# 147_C
+# 148_A
+# 149_A
+# 149_C
+# 150_A
+# 150_C
+# 151_A
+# 152_A
+# 153_A
+# 154_A
+# 155_A
+# 156_A
+# 157_A
+# 158_A
+# 158_C
+# 159_A
+# 160_A
+# 160_C
+# 161_A
+# 161_C
+# 162_A
+# 163_A
+# 164_A
+# 165_A
+# 167_A
+# 167_C
+# 168_A
+# 300_A
+# 300_C
+# 301_A
+# 301_C
+# 302_A
+# 303_A
+# 304_A
+# 304_C
+# 306_A
+# 307_A
+# 308_A
+# 309_A
+# 309_C
+# 310_A
+# 311_A
+# 311_C
+# 312_A
+# 313_A
+# 313_C
+# 314_A
+# 315_A
+# 315_C
+# 316_A
+# 316_C
+# 317_A
+# 317_C
+# 318_A
+# 319_A
+# 320_A
+# 320_C
+# 321_A
+# 322_A
+# 322_C
+# 323_A
+# 323_C
+# 324_A
+# 325_A
+# 326_A
+# 328_A
+# 329_A
+# 330_A
+# 330_C
+# 331_A
+# 332_A
+# 333_A
+# 335_A
+# 336_A
+# 336_C
+# 337_A
+# 337_C
+# 338_A
+# 339_A
+# 339_C
+# 341_A
+# 341_C
+# 342_A
+# 343_A
+# 344_A
+# 345_A
+# 346_A
+# 347_A
+# 348_A
+# 348_C
+# 349_A
+# 350_A
+# 351_A
+# 353_A
+# 354_A
+# 355_A
+# 356_A
+# 357_A
+# 357_C
+# 358_A
+# 359_A
+# 360_A
+# 361_A
+# 362_A
+# 363_A
+# 364_A
+# 364_C
+# 365_A
+# 365_C
+# 366_A
+# 366_C
+# 367_A
+# 367_C
+# 368_A
+# 369_A
+# 370_A
+# 371_A
+# 372_A
+# 373_A
+# 374_A
+# 376_A
+# 377_A
+# 378_A
+# 380_A
+# 380_C
+# 382_A
+# 386_A
+# 389_A
+# 389_C
+# 390_A
+# 391_A
+# 392_A
+# 392_C
+# 393_A
+# 395_A
+# 396_A
+# 397_A
+# 397_C
+# 398_A
+# 399_A
+# 400_A
+# 401_A
+# 401_C
+# 402_A
+# 403_A
+# 403_C
+# 404_A
+# 405_A
+# 406_A
+# 406_C
+# 407_A
+# 409_A
+# 410_A
+# 410_C
+# 411_A
+# 412_A
+# 413_A
+# 414_A
+# 414_C
+# 415_A
+# 415_C
+# 417_A
+# 418_A
+# 419_A
+# 419_C
+# 420_A
+# 421_A
+# 422_A
+# 423_A
+# 424_A
+# 425_A
+
+
+### Local Variables:
+### mode: sh
+### End:
