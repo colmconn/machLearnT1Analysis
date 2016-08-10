@@ -221,7 +221,7 @@ compute.small.world.metrics <- function (in.g, N, compress.rds=TRUE) {
     ##
     ## rand.dt is a data table containing the mod, Cp, Lp, E.global
     ## metrics for each of the random networks (the number of which is
-    ## dicted by N) used to computed the normalized Cp and Lp metrics
+    ## dictated by N) used to computed the normalized Cp and Lp metrics
     ## stored in small.dt
     rand.dt <- rbindlist(ret.vals[[2]])
     small.dt <- rbindlist(ret.vals[[1]])
