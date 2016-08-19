@@ -18,18 +18,25 @@ SCRIPTS_DIR=${ROOT}/scripts
 
 function doZeropad {
     local subject="$1"
+    if [[ $subject == "341_A" ]] ; then
+	sup="-S 30"
+    fi
     info_message "Zeropadding anat and EPI for subject $subject"
     if [[ -f $DATA/$subject/${subject}.anat_clp+orig.HEAD ]] ; then
-	if [[ $force -eq 1 ]] || [[ ! -f $DATA/$subject/${subject}.anat.zp+orig.HEAD ]] ; then 
-	    ( cd $DATA/$subject ; 3dZeropad -I 30 -prefix ${subject}.anat.zp ${subject}.anat_clp+orig.HEAD )
+	if [[ $force -eq 1 ]] || \
+	   [[ ! -f $DATA/$subject/${subject}.anat.zp+orig.HEAD ]]  || \
+	   [[ $DATA/$subject/${subject}.anat_clp+orig.HEAD -nt $DATA/$subject/${subject}.anat.zp+orig.HEAD ]] ; then
+	    ( cd $DATA/$subject ; 3dZeropad -I 30 $sup -prefix ${subject}.anat.zp ${subject}.anat_clp+orig.HEAD )
 	fi
     else
-	if [[ $force -eq 1 ]] || [[ ! -f $DATA/$subject/${subject}.anat.zp+orig.HEAD ]] ; then 
-	    ( cd $DATA/$subject ; 3dZeropad -I 30 -prefix ${subject}.anat.zp ${subject}.anat+orig.HEAD )
+	if [[ $force -eq 1 ]] || \
+	   [[ ! -f $DATA/$subject/${subject}.anat.zp+orig.HEAD ]] || \
+	   [[ $DATA/$subject/${subject}.anat+orig.HEAD -nt $DATA/$subject/${subject}.anat.zp+orig.HEAD ]]; then 
+	    ( cd $DATA/$subject ; 3dZeropad -I 30 $sup -prefix ${subject}.anat.zp ${subject}.anat+orig.HEAD )
 	fi
     fi
     if [[ $force -eq 1 ]] || [[ ! -f $DATA/$subject/${subject}.resting.zp+orig.HEAD ]] ; then 
-	( cd $DATA/$subject ; 3dZeropad -I 30 -prefix ${subject}.resting.zp ${subject}.resting+orig.HEAD )
+	( cd $DATA/$subject ; 3dZeropad -I 30 $sup -prefix ${subject}.resting.zp ${subject}.resting+orig.HEAD )
     fi
 }
 
@@ -196,134 +203,569 @@ for subject in $subjects ; do
 
     outputScriptName=run/run-afniRsfcPreproc-${subject}.sh
 
-    # case $subject in
-    # 	109_A)
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	114_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	132_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	137_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa"
-    # 	    ;;
-    # 	150_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa+ZZ -giant_move"
-    # 	    ;;
-    # 	154_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	164_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	300_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	307_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	316_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	318_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	329_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	334_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	338_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	341_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	343_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	345_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	348_A)
-    # 	    ## use_clipped_anat
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	347_A)
-    # 	    doZeropad $subject
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
-    # 	    ;;
-    # 	419_A)
-    # 	    doZeropad $subject	    
-    # 	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    # 	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    # 	    extraAlignmentArgs="-align_opts_aea -giant_move"
-    # 	    ;;
-	
-    # 	*)
-    # 	    extraAlignmentArgs=""
-    # 	    ;;
-    # esac
+    case $subject in
+	####################################################################################################
+	## first batch of alignment assessments
+    	109_A)
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
+    	    ;;
+    	113_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	120_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	133_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	135_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	137_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc -giant_move"
+    	    ;;
+    	143_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	145_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	153_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
+    	    ;;
+    	154_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	155_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc -giant_move"
+    	    ;;
+    	159_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc -giant_move"
+    	    ;;
+    	165_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
+    	    ;;
+    	307_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpa -giant_move"
+    	    ;;
+    	308_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	311_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	313_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc -giant_move"
+    	    ;;
+    	320_A)
+    	    ## use_clipped_anat
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc -giant_move"
+    	    ;;
+    	325_A)
+    	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea  -cost lpc+ZZ -giant_move"
+    	    ;;
+    	330_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	334_A)
+   	    doZeropad $subject	    
+   	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+   	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;	
+    	341_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	345_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;	
+    	346_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	347_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	348_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;	
+    	356_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;	
+    	364_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;	
+    	370_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	374_A)
+    	    # doZeropad $subject	    
+    	    # anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    # epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    # extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	380_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;	
+    	390_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	411_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	414_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;	
+    	411_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+	####################################################################################################
+	## second batch of alignment assessments
+	108_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+	118_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+	116_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	121_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	124_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	126_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	127_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	132_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	142_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	146_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	150_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	160_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	164_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	167_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	300_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;	
+    	306_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;	
+    	310_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	312_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	314_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	315_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	317_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	321_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	322_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	326_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	331_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	333_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	335_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	338_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	343_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	351_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	357_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	360_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	362_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	367_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	374_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	386_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	389_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	391_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	395_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	397_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	398_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	403_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;
+    	406_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;	
+    	415_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	415_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	417_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	421_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	423_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	424_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+	####################################################################################################
+	## 3rd batch
+    	339_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	369_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	371_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	372_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	373_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	377_A)
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	376_A)
+    	    anatFile=${DATA}/$subject/$subject.anat+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+	####################################################################################################
+	## 4th batch
+    	117_A2)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+	*)
+    	    extraAlignmentArgs=""
+    	    ;;
+    esac
 
-    doZeropad $subject	    
-    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
     ## do non-linear warping? If so add the flag to the extra
     ## alignment args variable
     if [[ $nonlinear -eq 1 ]] ; then 
@@ -361,7 +803,7 @@ cd $DATA/$subject
 preprocessingScript=${subject}.afniRsfcPreprocess.csh
 rm -f \${preprocessingScript}
 
-outputDir=afniRsfcPreprocessed
+outputDir=afniRsfcPreprocessed.NL
 rm -fr \${outputDir}
 
 motionThreshold=${motionThreshold}
@@ -369,6 +811,7 @@ outlierThreshold=${outlierThreshold}
 
 ##	     -tcat_remove_first_trs ${tcat}					\\
 ## -tlrc_opts_at -init_xform AUTO_CENTER \\
+## 	     -regress_censor_outliers \$outlierThreshold                 	\\
 
 afni_proc.py -subj_id ${subject}						\\
              -script \${preprocessingScript}					\\
@@ -388,9 +831,8 @@ afni_proc.py -subj_id ${subject}						\\
 	     -mask_segment_erode yes						\\
 	     -regress_anaticor							\\
 	     -regress_bandpass ${lowpass} ${highpass}				\\
-	     -regress_apply_mot_types demean deriv				\\
+	     -regress_apply_mot_types demean   					\\
              -regress_censor_motion \$motionThreshold              		\\
-	     -regress_censor_outliers \$outlierThreshold                 	\\
 	     -regress_run_clustsim no						\\
 	     -regress_est_blur_errts
 
@@ -425,7 +867,9 @@ if [[ -f \${preprocessingScript} ]] ; then
     	if [[ \$trs != "" ]] ; then  
 	    3dFWHMx -ACF -detrend -mask mask_group+tlrc                      \\
         	errts.$subject.anaticor+tlrc"[\$trs]" > acf.blur.errts.1D
-	fi 
+	fi
+    else
+	touch 00_DO_NOT_ANALYSE_${subject}_\${excessiveMotionThresholdPercentage}percent.txt
     fi
 else
     echo "*** No such file \${preprocessingScript}"
@@ -436,7 +880,7 @@ fi
 EOF
 
     chmod +x $outputScriptName
-    LOG_FILE=$DATA/$subject/$subject-rsfc-afniPreproc.log
+    LOG_FILE=$DATA/$subject/$subject-rsfc-afniPreproc.NL.log
     rm -f ${LOG_FILE}
     qsub -N rsfc-$subject -q all.q -j y -m n -V -wd $( pwd )  -o ${LOG_FILE} $outputScriptName
 
