@@ -20,7 +20,8 @@ OUTDIR /data/sanDiego/machLearnT1Analysis/data/rsfc_t1_afni_mni_space
 # This is the name of the underlay file to use for rendering the image.
 # For afni format files, leave off the +orig or +tlrc.
 # For .nii files, give the full filename.
-COLORSCALE Spectrum:yellow_to_cyan
+## COLORSCALE Spectrum:yellow_to_cyan
+COLORSCALE Spectrum:red_to_blue
 # This is the name of the colorscale to use, as the names appear in the afni viewer.
 OPACITY 6
 # This is the opacity of the functional map on top of the anatomical underlay.
@@ -47,7 +48,7 @@ VIEW tlrc
 #VIEW tlrc
 UNDERLAY     anat_final.${SUBJ}+tlrc.HEAD
 ## OVERLAY      NO_OVERLAY
-OVERLAY	     final_epi_vr_base_min_outlier+tlrc.HEAD
+OVERLAY	     final_epi_vr_base+tlrc.HEAD
 
 RENDERIMAGE RSFC_Vol0 0 0 axialimage 0 0.5 9.5 -22.5
 RENDERIMAGE RSFC_Vol0 0 0 axialimage 0 0.5 9.5 2.5
