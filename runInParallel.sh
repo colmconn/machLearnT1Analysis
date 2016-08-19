@@ -18,34 +18,42 @@ if [[ $# -gt 0 ]] ; then
     subjects="$*"
 else
 
-    subjects="130_A 136_A 140_A 149_A 161_A 165_A
-167_A 300_A 301_A 307_A 309_A 311_A 316_A 324_A 326_A 328_A 329_A
-336_A 339_A 364_A 368_A"
+    # subjects="369_A 371_A 373_A 377_A"
     
+
     ## subjects="$( cat ../data/config/control.subjectList.txt ../data/config/mdd.nat.txt )"
-    subjects=$( cd ../data; ls -1d *_A2 )
+    subjects=$( cd ../data; ls -1d *_A* )
     # subjectCount=$( cd ../data; ls -1d *_A2 | wc -l )
 fi
 
-taskFile=$SCRIPTS_DIR/run/convertDicoms-TaskFile.$BASHPID
+subjectCount=$( echo $subjects | wc -w )
+
+taskName=seed-rsfc
+taskFile=$SCRIPTS_DIR/run/${taskName}-TaskFile.$BASHPID
+info_message "List of tasks to be executed is stored in $taskFile"
 
 cat /dev/null > $taskFile
 
 
-jobname="convertDicoms"
 (( i=1 ))
 for subject in ${subjects} ; do
     info_message "$( printf "Adding script(s) for subject %s (%03d of %03d) to task file\n" $subject $i $subjectCount )"
 
-    echo "$SCRIPTS_DIR/00-convertDicoms.sh -s $subject" >> ${taskFile}
+    #echo "$SCRIPTS_DIR/00-convertDicoms.sh -s $subject" >> ${taskFile}
+    ## echo "$SCRIPTS_DIR/alignment_test.sh $subject" >> ${taskFile}
 
+    echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/juelich_whole_amygdala_seeds.txt" >> ${taskFile} 
+    echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/dlpfc_seeds.txt" >> ${taskFile} 
+    echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/sgacc_seeds.txt" >> ${taskFile} 
+
+    
     ## echo "./03-singleSubjectRsfc.sh -s $subject -l ../data/config/dlpfc.seed.list.txt" >> ${taskFile}
     ## echo "./03-singleSubjectRsfc.sh -s $subject -l ../data/config/seed.list.txt" >> ${taskFile}
     (( i=i+1 ))
 done
 
 ## jobname
-#$ -N $jobname
+#$ -N $taskName
 
 ## queue
 #$ -q all.q
@@ -77,7 +85,7 @@ done
 [[ ! -d $LOG_DIR ]] && mkdir $LOG_DIR
 
 nTasks=$( cat $taskFile | wc -l )
-sge_command="qsub -N $jobname -q all.q -j y -m n -V -wd $( pwd ) -o $LOG_DIR -t 1-$nTasks" 
+sge_command="qsub -N $taskName -q all.q -j y -m n -V -wd $( pwd ) -o $LOG_DIR -t 1-$nTasks" 
 echo $sge_command
 ( exec $sge_command <<EOF
 #!/bin/sh
