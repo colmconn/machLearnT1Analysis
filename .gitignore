@@ -14,3 +14,6 @@ Thumbs.db
 .Rapp.history
 .RData
 run
+
+## ignore automatically generated t test script files
+04-ttest.withCovariates.*.sh    
