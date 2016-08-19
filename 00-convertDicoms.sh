@@ -18,19 +18,22 @@ SCRIPTS_DIR=${ROOT}/scripts
 
 . ${SCRIPTS_DIR}/logger_functions.sh
 
-GETOPT_OPTIONS=$( $GETOPT  -o "s:" --longoptions "subject::" -n ${programName} -- "$@" )
+GETOPT_OPTIONS=$( $GETOPT  -o "fs:" --longoptions "force,subject::" -n ${programName} -- "$@" )
 exitStatus=$?
 if [ $exitStatus != 0 ] ; then 
     error_message "Error with getopt. Terminating..." >&2 
     exit $exitStatus
 fi
 
+force=0
 # Note the quotes around `$GETOPT_OPTIONS': they are essential!
 eval set -- "$GETOPT_OPTIONS"
 while true ; do 
     case "$1" in
 	-s|--subject)
 	    subjectNumber=$2; shift 2 ;;
+	-f|--force)
+	    force=1; shift ;;
 	--) 
 	    shift ; break ;;
 
@@ -144,22 +147,22 @@ if [[ ! -d $PROCESSED_DATA/${subjectNumber} ]] ; then
 fi
 
 
-info_message "****************************************************************************************************"
-info_message "T1 Anatomy reconstruction"
 
 dicomTask="FSPGR_SAG_TI550"
 task="anat"
-if [[ ! -f $PROCESSED_DATA/${subjectNumber}/${subjectNumber}.${task}+orig.HEAD ]] ; then 
-    ## reconstruct "mgz" "$subjectNumber"  "$dicomTask" "$task"
+if [[ $force -eq 1 ]] || [[ ! -f $PROCESSED_DATA/${subjectNumber}/${subjectNumber}.${task}+orig.HEAD ]] ; then 
+    info_message "****************************************************************************************************"
+    info_message "T1 Anatomy reconstruction"
+
     reconstruct "afni" "$subjectNumber"  "$dicomTask" "$task"     
 fi
 
 
-info_message "****************************************************************************************************"
-info_message "*** Resting state reconstruction"
-
 dicomTask="resting state"
 task="resting"
-if [[ ! -f $PROCESSED_DATA/${subjectNumber}/${subjectNumber}.${task}+orig.HEAD ]] ; then 
+if [[ $force -eq 1 ]] || [[ ! -f $PROCESSED_DATA/${subjectNumber}/${subjectNumber}.${task}+orig.HEAD ]] ; then 
+    info_message "****************************************************************************************************"
+    info_message "*** Resting state reconstruction"
+
     reconstruct "afni" "$subjectNumber"  "$dicomTask" "$task"
 fi
