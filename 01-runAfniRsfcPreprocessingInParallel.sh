@@ -162,8 +162,10 @@ fi
 
 if [[ $nonlinear -eq 1 ]] ; then 
     info_message "Using nonlinear alignment"
+    scriptExt="noanaticor.NL"
 else 
     info_message "Using affine alignment only"
+    scriptExt="noanaticor.aff"    
 fi
 
 ####################################################################################################
@@ -201,8 +203,12 @@ for subject in $subjects ; do
 	anatFile=${DATA}/$subject/$subject.anat+orig.HEAD
     fi
 
-    outputScriptName=run/run-afniRsfcPreproc-${subject}.sh
-
+    if [[ $nonlinear -eq 1 ]] ; then 
+	outputScriptName=run/run-afniRsfcPreproc-${subject}.${scriptExt}.sh
+    else
+	outputScriptName=run/run-afniRsfcPreproc-${subject}.${scriptExt}.sh	
+    fi
+    
     case $subject in
 	####################################################################################################
 	## first batch of alignment assessments
@@ -486,7 +492,7 @@ for subject in $subjects ; do
     	    doZeropad $subject	    
     	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
     	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
     	    ;;
     	164_A)
     	    doZeropad $subject	    
@@ -761,6 +767,88 @@ for subject in $subjects ; do
     	    epiFile=$DATA/$subject/${subject}.resting+orig.HEAD
     	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
     	    ;;
+	####################################################################################################
+	## 5th batch
+    	106_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+    	114_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+    	119_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ"
+    	    ;;
+    	132_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+    	158_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+    	165_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;
+    	167_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+    	307_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    ;;
+    	316_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+    	386_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ"
+    	    ;;	    
+    	424_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc"
+    	    ;;
+	####################################################################################################
+	## 6th batch
+    	300_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpa -giant_move"
+    	    ;;	
+    	336_A)
+	    doZeropad $subject
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc+ZZ -giant_move"
+    	    ;;	
 	*)
     	    extraAlignmentArgs=""
     	    ;;
@@ -770,10 +858,19 @@ for subject in $subjects ; do
     ## alignment args variable
     if [[ $nonlinear -eq 1 ]] ; then 
 	extraAlignmentArgs="${extraAlignmentArgs} -tlrc_NL_warp"
+	if [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/${subject}.anat.zp_al_keep+tlrc.HEAD ]] && \
+	   [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.Xat.1D ]] && \
+	   [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.qw_WARP.nii ]] ; then 
+	    extraAlignmentArgs="${extraAlignmentArgs} \\
+	     -tlrc_NL_warped_dsets ${DATA}/${subject}/afniRsfcPreprocessed.NL/${subject}.anat.zp_al_keep+tlrc.HEAD \\
+                                   ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.Xat.1D \\
+                                   ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.qw_WARP.nii"
+	fi
     fi
 
     info_message "Writing script: $outputScriptName"
-    
+
+
     cat <<EOF > $outputScriptName
 #!/bin/bash
 
@@ -800,10 +897,10 @@ excessiveMotionThresholdPercentage=$excessiveMotionThresholdPercentage
 
 cd $DATA/$subject
 
-preprocessingScript=${subject}.afniRsfcPreprocess.csh
+preprocessingScript=${subject}.afniRsfcPreprocess.$scriptExt.csh
 rm -f \${preprocessingScript}
 
-outputDir=afniRsfcPreprocessed.NL
+outputDir=afniRsfcPreprocessed.$scriptExt
 rm -fr \${outputDir}
 
 motionThreshold=${motionThreshold}
@@ -829,11 +926,12 @@ afni_proc.py -subj_id ${subject}						\\
 	     -mask_segment_anat yes						\\
 	     -regress_censor_first_trs ${tcat}					\\
 	     -mask_segment_erode yes						\\
-	     -regress_anaticor							\\
+	     -regress_ROI WMe							\\
 	     -regress_bandpass ${lowpass} ${highpass}				\\
 	     -regress_apply_mot_types demean   					\\
              -regress_censor_motion \$motionThreshold              		\\
 	     -regress_run_clustsim no						\\
+	     -regress_est_blur_epits                                            \\
 	     -regress_est_blur_errts
 
 if [[ -f \${preprocessingScript} ]] ; then 
@@ -880,10 +978,10 @@ fi
 EOF
 
     chmod +x $outputScriptName
-    LOG_FILE=$DATA/$subject/$subject-rsfc-afniPreproc.NL.log
+    LOG_FILE=$DATA/$subject/$subject-rsfc-afniPreproc.${scriptExt}.log
     rm -f ${LOG_FILE}
-    qsub -N rsfc-$subject -q all.q -j y -m n -V -wd $( pwd )  -o ${LOG_FILE} $outputScriptName
+    ## qsub -N rsfc-$subject -q all.q -j y -m n -V -wd $( pwd )  -o ${LOG_FILE} $outputScriptName
 
 done
 
-qstat
+## qstat
