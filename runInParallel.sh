@@ -40,11 +40,11 @@ for subject in ${subjects} ; do
     info_message "$( printf "Adding script(s) for subject %s (%03d of %03d) to task file\n" $subject $i $subjectCount )"
 
     #echo "$SCRIPTS_DIR/00-convertDicoms.sh -s $subject" >> ${taskFile}
-    ## echo "$SCRIPTS_DIR/alignment_test.sh $subject" >> ${taskFile}
+    echo "$SCRIPTS_DIR/alignment_test.sh $subject" >> ${taskFile}
 
-    echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/juelich_whole_amygdala_seeds.txt" >> ${taskFile} 
-    echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/dlpfc_seeds.txt" >> ${taskFile} 
-    echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/sgacc_seeds.txt" >> ${taskFile} 
+    #echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/juelich_whole_amygdala_seeds.txt" >> ${taskFile} 
+    #echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/dlpfc_seeds.txt" >> ${taskFile} 
+    #echo "$SCRIPTS_DIR/02-singleSubjectRsfc.sh -s $subject -l ../data/config/sgacc_seeds.txt" >> ${taskFile} 
 
     
     ## echo "./03-singleSubjectRsfc.sh -s $subject -l ../data/config/dlpfc.seed.list.txt" >> ${taskFile}
