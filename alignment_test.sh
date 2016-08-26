@@ -12,7 +12,7 @@ export AFNI_3dDespike_NEW=YES
 
 ## only use a single thread since we're going to run so many subjects
 ## in parallel
-export OMP_NUM_THREADS=40
+export OMP_NUM_THREADS=8
 
 subject="$@"
 
@@ -61,6 +61,7 @@ align_epi_anat.py -anat2epi			\
 		  -volreg off			\
 		  -tshift off			\
 		  -cost lpc			\
+		  -giant_move			\
 		  -multi_cost lpa lpc+ZZ mi
 
 
