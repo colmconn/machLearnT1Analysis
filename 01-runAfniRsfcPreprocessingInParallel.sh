@@ -41,8 +41,8 @@ function doZeropad {
 }
 
 GETOPT_OPTIONS=$( $GETOPT \
-		      -o "fe:m:o:h:l:h:b:t:n" \
-		      --longoptions "force,excessiveMotionThresholdFraction:,motionThreshold:,outlierThreshold:,threads:,lowpass:,highpass:,blur:,tcat:,nonlinear" \
+		      -o "fe:m:o:h:l:h:b:t:nq" \
+		      --longoptions "force,excessiveMotionThresholdFraction:,motionThreshold:,outlierThreshold:,threads:,lowpass:,highpass:,blur:,tcat:,nonlinear,enqueue" \
 		      -n ${programName} -- "$@" )
 exitStatus=$?
 if [ $exitStatus != 0 ] ; then 
@@ -52,6 +52,9 @@ fi
 
 ## 1 = force creation of zero padded files
 force=0
+
+## enqueue the job for execution
+enqueue=0
 
 # Note the quotes around `$GETOPT_OPTIONS': they are essential!
 eval set -- "$GETOPT_OPTIONS"
@@ -77,6 +80,8 @@ while true ; do
 	    tcat=$2; shift 2 ;;	
 	-n|--nonlinear)
 	    nonlinear=1; shift 1 ;;	
+	-q|--enqueue)
+	    enqueue=1; shift 1 ;;	
 	--) 
 	    shift ; break ;;
 
@@ -858,11 +863,14 @@ for subject in $subjects ; do
     ## alignment args variable
     if [[ $nonlinear -eq 1 ]] ; then 
 	extraAlignmentArgs="${extraAlignmentArgs} -tlrc_NL_warp"
-	if [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/${subject}.anat.zp_al_keep+tlrc.HEAD ]] && \
+	anat_base=$( basename $anatFile )
+	anat_base=${anat_base%%+*}
+	if [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/${anat_base}_al_keep+tlrc.HEAD ]] && \
 	   [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.Xat.1D ]] && \
-	   [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.qw_WARP.nii ]] ; then 
+	   [[ -f ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.qw_WARP.nii ]] ; then
+	    info_message "Supplying prexisting nonlinear warped anatomy to afni_proc.py"
 	    extraAlignmentArgs="${extraAlignmentArgs} \\
-	     -tlrc_NL_warped_dsets ${DATA}/${subject}/afniRsfcPreprocessed.NL/${subject}.anat.zp_al_keep+tlrc.HEAD \\
+	     -tlrc_NL_warped_dsets ${DATA}/${subject}/afniRsfcPreprocessed.NL/${anat_base}_al_keep+tlrc.HEAD \\
                                    ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.Xat.1D \\
                                    ${DATA}/${subject}/afniRsfcPreprocessed.NL/anat.un.aff.qw_WARP.nii"
 	fi
@@ -877,6 +885,9 @@ for subject in $subjects ; do
 set -x 
 
 #$ -S /bin/bash
+
+## disable compression of BRIKs/nii files
+unset AFNI_COMPRESSOR
 
 export PYTHONPATH=$AFNI_R_DIR
 
@@ -946,9 +957,8 @@ if [[ -f \${preprocessingScript} ]] ; then
         numberOfCensoredVolumes=\$( 1d_tool.py -infile \$xmat_regress -show_tr_run_counts trs_cen )
         totalNumberOfVolumes=\$( 1d_tool.py -infile \$xmat_regress -show_tr_run_counts trs_no_cen )
 
-	## cutoff=\$( echo "scale=0; \$excessiveMotionThresholdFraction*\$totalNumberOfVolumes" | bc | cut -f 1 -d '.' )
         ## rounding method from http://www.alecjacobson.com/weblog/?p=256
-        cutoff=\$( echo "(\$(echo "scale=0;\$excessiveMotionThresholdFraction*\$totalNumberOfVolumes" | bc)+0.5)/1" | bc )
+        cutoff=\$( echo "((\$excessiveMotionThresholdFraction*\$totalNumberOfVolumes)+0.5)/1" | bc )
 	if [[ \$numberOfCensoredVolumes -gt \$cutoff ]] ; then 
 
 	    echo "*** A total of \$numberOfCensoredVolumes of
@@ -960,15 +970,17 @@ if [[ -f \${preprocessingScript} ]] ; then
 	    echo "*** WARNING: $subject will not be analysed due to having more than \${excessiveMotionThresholdPercentage}% of their volumes censored."
 	fi
 
-    	trs=\$( 1d_tool.py -infile \$xmat_regress -show_trs_uncensored encoded   \\
-                          -show_trs_run 01 )
-    	if [[ \$trs != "" ]] ; then  
-	    3dFWHMx -ACF -detrend -mask mask_group+tlrc                      \\
-        	errts.$subject.anaticor+tlrc"[\$trs]" > acf.blur.errts.1D
-	fi
+    	# trs=\$( 1d_tool.py -infile \$xmat_regress -show_trs_uncensored encoded   \\
+        #                   -show_trs_run 01 )
+    	# if [[ \$trs != "" ]] ; then  
+	#     3dFWHMx -ACF -detrend -mask mask_group+tlrc                      \\
+        # 	errts.$subject.anaticor+tlrc"[\$trs]" > acf.blur.errts.1D
+	# fi
     else
 	touch 00_DO_NOT_ANALYSE_${subject}_\${excessiveMotionThresholdPercentage}percent.txt
     fi
+    echo "Compressing BRIKs and nii files"
+    find ./ \( -name "*.BRIK" -o -name "*.nii" \) -print0 | xargs -0 gzip
 else
     echo "*** No such file \${preprocessingScript}"
     echo "*** Cannot continue"
@@ -978,10 +990,19 @@ fi
 EOF
 
     chmod +x $outputScriptName
-    LOG_FILE=$DATA/$subject/$subject-rsfc-afniPreproc.${scriptExt}.log
-    rm -f ${LOG_FILE}
-    ## qsub -N rsfc-$subject -q all.q -j y -m n -V -wd $( pwd )  -o ${LOG_FILE} $outputScriptName
+    if [[ $enqueue -eq 1 ]] ; then
+	info_message "Submitting job for execution to queuing system"
+	LOG_FILE=$DATA/$subject/$subject-rsfc-afniPreproc.${scriptExt}.log
+	info_message "To see progress run: tail -f $LOG_FILE"
+	rm -f ${LOG_FILE}
+	qsub -N rsfc-$subject -q all.q -j y -m n -V -wd $( pwd )  -o ${LOG_FILE} $outputScriptName
+    else
+	info_message "Job *NOT* submitted for execution to queuing system"
+	info_message "Pass -q or --enqueue options to this script to do so"	
+    fi
 
 done
 
-## qstat
+if [[ $enqueue -eq 1 ]] ; then 
+    qstat
+fi
