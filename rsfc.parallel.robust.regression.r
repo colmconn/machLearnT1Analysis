@@ -2,11 +2,6 @@
 
 rm(list=ls())
 
-##the name of this script
-script.name=parent.frame(2)$ofile
-## the location (absolute path) to this script
-script.location=normalizePath(dirname(parent.frame(2)$ofile))
-
 library(MASS)
 library(getopt)
 
@@ -32,7 +27,7 @@ if ( ! is.na(AFNI_R_DIR) ) {
 ## labels for later use as labels to the 3drefit command so the briks
 # in the bucket are correctly labeled. Spaces are replaced with . and
 ## ( or ) are deleted.
-makeBrikLabels <- function (inRlmCoef, inBoot=FALSE) {
+make.brik.labels <- function (inRlmCoef, inBoot=FALSE) {
     rns=rownames(inRlmCoef)
     cns=colnames(inRlmCoef)
     
@@ -63,7 +58,7 @@ makeBrikLabels <- function (inRlmCoef, inBoot=FALSE) {
 ## make a list of the AFNI brik indices that correspond to the t-stat
 ## from the matrix of coefficients produced by rlm. This take into
 ## account that AFNI numbers from 0 not 1
-makeAfniTtestBrikIds <- function(inRlmCoef, inBoot=FALSE) {
+make.afni.ttest.brik.ids <- function(inRlmCoef, inBoot=FALSE) {
     nrows=length(rownames(inRlmCoef))
     ncols=length(colnames(inRlmCoef))
     
@@ -79,13 +74,13 @@ makeAfniTtestBrikIds <- function(inRlmCoef, inBoot=FALSE) {
 ## given a list of AFNI brik indices and a degrees of freedom (inDf)
 ## make an appropriate list of statpar arguments to add to a 3drefit
 ## command line
-makeAfniStatparArguments <- function(inDf, inAfniTtestBrikIds) {
+make.afni.statpar.arguments <- function(inDf, inAfniTtestBrikIds) {
     return( paste(sapply(inAfniTtestBrikIds, function(x) { sprintf("-substatpar %d fitt %d", x[1], inDf) }), collapse=" ") )
 }
 
-## this is a very trimmed down version of the runRegression function
+## this is a very trimmed down version of the run.regression function
 ## below. It is only for use with bootstrapping
-bootRegression<- function(inData, inIndices, inModelFormula, inMaxIt=50, inNumberOfBetaValues) {
+boot.regression<- function(inData, inIndices, inModelFormula, inMaxIt=50, inNumberOfBetaValues) {
     outStats <- vector(mode="numeric", length=inNumberOfBetaValues)
     if ( ! inherits(myrlm <- try(rlm(inModelFormula, data=inData[inIndices, ], maxit=inMaxIt), silent=TRUE),
                     "try-error") ) {
@@ -97,10 +92,11 @@ bootRegression<- function(inData, inIndices, inModelFormula, inMaxIt=50, inNumbe
     }
 }
 
-runRegression <- function (inData, inNumberOfStatsBriks, inModel, inModelFormula, inMaxIt=50, inBoot=FALSE, inR=25, inBootstrapStatsStartAt=NA) {
+run.regression <- function (inData, inNumberOfStatsBriks, inModel, inModelFormula, inMaxIt=50, inBoot=FALSE, inR=25, inBootstrapStatsStartAt=NA) {
     ## cat("inNumberOfStatsBriks =>", inNumberOfStatsBriks, "\n")
     ## cat("inBootstrapStatsStartAt =>", inBootstrapStatsStartAt, "\n")
     out.stats <- vector(mode="numeric", length=inNumberOfStatsBriks)
+    ## full.model.residuals <- vector(mode="numeric", length=dim(inModel)[1])
     if ( ! all(inData == 0 ) ) {
 
         ## if inData is all zero then we are in a portion of the masked
@@ -110,7 +106,7 @@ runRegression <- function (inData, inNumberOfStatsBriks, inModel, inModelFormula
         
         inModel$mri<-inData
         myrlm <- rlm(inModelFormula, data = inModel, maxit=inMaxIt)
-        full.model.residuals=residuals(myrlm)
+        ## full.model.residuals=residuals(myrlm)
         numberOfBetaValues=length(coefficients(myrlm))
         ## print(myrlm)
         ## print(summary(myrlm))
@@ -136,13 +132,13 @@ runRegression <- function (inData, inNumberOfStatsBriks, inModel, inModelFormula
             out.stats[2:(inBootstrapStatsStartAt-1)]=model.coefficients
             
             if (is.na(inBootstrapStatsStartAt)) {
-                stop("***ERROR in runRegression: inBootstrapStatsStartAt has not been set. It is currently NA. Cannot continue. Stopping\n")
+                stop("*** ERROR in run.regression: inBootstrapStatsStartAt has not been set. It is currently NA. Cannot continue. Stopping\n")
             }
 
             ## cat ("inside inBoot out.stats is: ", out.stats, "\n")
             ## cat ("number of stats briks should be: ", length(2:(inBootstrapStatsStartAt-1)), "\n")
             
-            boot.stats=boot(inModel, bootRegression, R=inR, inModelFormula=inModelFormula, inMaxIt=inMaxIt, inNumberOfBetaValues=numberOfBetaValues)
+            boot.stats=boot(inModel, boot.regression, R=inR, inModelFormula=inModelFormula, inMaxIt=inMaxIt, inNumberOfBetaValues=numberOfBetaValues)
             ## cat("boot.stats is\n")
             ## print(boot.stats)
             ## print(class(boot.stats))
@@ -197,11 +193,12 @@ runRegression <- function (inData, inNumberOfStatsBriks, inModel, inModelFormula
     ##     stop()
     ## cat(".")
 
-    return(list("stats"=out.stats, "full.mmodel.residuals"=full.mmodel.residuals))
+    ##return(list("stats"=out.stats, "full.model.residuals"=full.model.residuals))
+    return(out.stats)
 }
 
 
-readDataTable <- function (inFilename) {
+read.data.table <- function (inFilename) {
     if (file.exists(inFilename)) {
         cat("*** Reading", inFilename, "\n")
         data.table=read.table(inFilename, header=TRUE)
@@ -225,7 +222,7 @@ help <- function(){
 
 }
 
-checkCommandLineArguments <- function (in.opt) {
+check.command.line.arguments <- function (in.opt) {
     ## if help was asked for print a friendly message
     ## and exit with a non-zero error code
     if ( !is.null(in.opt$help) ) {
@@ -271,6 +268,10 @@ checkCommandLineArguments <- function (in.opt) {
         in.opt$resamples=25
     }
 
+    if ( is.null(in.opt$progress)) {
+        in.opt$progress=FALSE
+    }
+
     if ( is.null(in.opt$threads)) {
         in.opt$threads=1
     } else {
@@ -293,7 +294,7 @@ checkCommandLineArguments <- function (in.opt) {
     return(in.opt)
 }
 
-printOptionsSummary <- function () {
+print.command.line.arguments.summary <- function () {
     cat("*** Data table will be read from", opt$datatable, "\n")
     if (opt$bootstrap) {
         cat("*** Performing bootstrapping of the regression using", opt$resamples, "resamples\n")
@@ -303,9 +304,12 @@ printOptionsSummary <- function () {
     cat("*** Model formula is:", opt$formula, "\n")
     cat("*** Results will be written to:", opt$session, "\n")
     cat("*** Stats and errts files will be named with", opt$infix, "infix\n")
-    cat("*** Running with", opt$threads, "CPUs\n")
+    cat(paste("*** Running with", opt$threads, ifelse(opt$threads == 1, "CPU", "CPUs"), "\n"))
     if (opt$verbose) {
         cat("*** Verbose messages enables\n")
+    }
+    if (opt$progress) {
+        cat("*** Using progress bar\n")
     }
 }
 
@@ -323,8 +327,30 @@ stop.if.not.valid.data.table <- function(in.data.table) {
                   paste(in.data.table$InputFile[!do.input.files.exist], collapse="\n"), "\n"))
         stop("*** Cannot continue\n")
     }
+    unique.brik.file.views=unique(vapply(data.table[, "InputFile"], view.AFNI.name, ""))
+    if (length(unique.brik.file.views) > 1) {
+        cat("*** More than one view provided for the input files in the data table\n")
+        cat(paste("*** The following views were derived from the input files in the data table:",
+                  paste(unique.brik.file.views, collapse=", "), "\n"))
+        stop("*** Cannot continue\n")
+    }
+    length(unique(vapply(data.table[, "InputFile"], view.AFNI.name, "")))
+    
+    n.nonmandatory.columns=length(colnames(in.data.table)[-c(1, length(colnames(in.data.table)))])
+    if (n.nonmandatory.columns < 1) {
+        stop("*** Data table must contain at least 1 (one) non mandatory column to condict regression\n")
+    }
     if (opt$verbose) {
         cat("*** Data table passes validity checks\n")
+    }
+}
+
+print.data.table.summary <- function(in.data.table) {
+    cat(sprintf("*** Read data for %s subjects\n",  length(in.data.table[, "Subj"])))
+    nonmandatory.columns=colnames(in.data.table)[-c(1, length(colnames(in.data.table)))]
+    for (cc in nonmandatory.columns) {
+        cat(sprintf("*** Data table column %s is of class %s is summarized as follows:\n", cc, class(in.data.table[, cc])))
+        print(summary(in.data.table[, cc]))
     }
 }
 
@@ -356,7 +382,7 @@ stop.if.not.valid.formula <- function (in.formula, in.data.table) {
 
 
 read.input.briks <- function (in.data.table, in.opt) {
-    cat("*** Reading each subject's input data file. This may take some time\n")
+    cat("*** Reading each subjects' input data file. This may take some time\n")
     ## culled from 3dLME.R
     ## inputBrik=unlist(lapply(lapply(in.data.table[, "InputFile"], read.AFNI, verb=in.opt$verbose, meth="clib", forcedset = TRUE), '[[', 1))
     input.briks=lapply(in.data.table[, "InputFile"], read.AFNI, verb=in.opt$verbose, meth="clib", forcedset = TRUE)
@@ -381,6 +407,15 @@ read.input.briks <- function (in.data.table, in.opt) {
     }
 
     return(mr.data)
+}
+
+read.first.inputfile <- function(in.data.table) {
+    cat("*** Reading first subject's input data file\n")
+    ## culled from 3dLME.R
+    ## inputBrik=unlist(lapply(lapply(in.data.table[, "InputFile"], read.AFNI, verb=in.opt$verbose, meth="clib", forcedset = TRUE), '[[', 1))
+    first.brik=read.AFNI(in.data.table[1, "InputFile"], verb=opt$verbose, meth="clib", forcedset = TRUE)
+
+    return(first.brik)
 }
 
 test.model <-function(in.model.formula, in.model, in.mr.data, in.opt) {
@@ -412,17 +447,17 @@ test.model <-function(in.model.formula, in.model, in.mr.data, in.opt) {
         }
         test.rlm.coeff = coef(s)
         test.rlm.dof=s$df
-        rlm.residuals=residuals(test.rlm)
-        if (in.opt$verbose) {
-            cat("*** The test robust linear model residuals are:\n")
-            print(rlm.residuals)
-        }
+        ## rlm.residuals=residuals(test.rlm)
+        ## if (in.opt$verbose) {
+        ##     cat("*** The test robust linear model residuals are:\n")
+        ##     print(rlm.residuals)
+        ## }
         if (opt$verbose)
             cat("*** Success! Model appears to be solvable\n")
     }
 
-    return(list("test.rlm.coeff"=test.rlm.coeff, "test.rlm.dof"=test.rlm.dof))
-    
+    return(list("test.rlm.coeff"=test.rlm.coeff, "test.rlm.dof"=test.rlm.dof))##, "test.rlm.residuals"=rlm.residuals))
+           
 }
 
 
@@ -431,8 +466,8 @@ test.model <-function(in.model.formula, in.model, in.mr.data, in.opt) {
 ##########################################################################################################################################################################
 
 ## enable debugging of runRlm
-##debug(runRegression)
-##trace("runRegression", quote(if(! all(inData == 0 ) ) browser()))
+##debug(run.regression)
+##trace("run.regression", quote(if(! all(inData == 0 ) ) browser()))
 ####################################################################################################
 
 if ( Sys.info()["sysname"] == "Darwin" ) {
@@ -452,39 +487,50 @@ OPTIONAL_ARGUMENT="2"
 
 ## process command line arguments
 command.line.argument.specification = matrix(c(
-    'help',          'h', NO_ARGUMENT,       "logical",
-    'datatable',     'd', REQUIRED_ARGUMENT, "character",
-    'bootstrap',     'b', NO_ARGUMENT,       "logical",
-    "formula",       'f', REQUIRED_ARGUMENT, "character",
-    "session",       's', REQUIRED_ARGUMENT, "character",
-    "infix",         'i', REQUIRED_ARGUMENT, "character",
-    "resamples",     'r', REQUIRED_ARGUMENT, "integer",
-    "threads",       't', REQUIRED_ARGUMENT, "integer",
-    "verbose",       'v', NO_ARGUMENT,       "logical"
+    'bootstrap',	'b',	NO_ARGUMENT,		'logical',
+    'datatable',	'd',	REQUIRED_ARGUMENT,	'character',
+    'formula',		'f',	REQUIRED_ARGUMENT,	'character',
+    'help',		'h',	NO_ARGUMENT,		'logical',
+    'infix',		'i',	REQUIRED_ARGUMENT,	'character',
+    'progress',		'p',	NO_ARGUMENT,		'logical',
+    'resamples',	'r',	REQUIRED_ARGUMENT,	'integer',
+    'session',		's',	REQUIRED_ARGUMENT,	'character',
+    'threads',		't',	REQUIRED_ARGUMENT,	'integer',
+    'verbose',		'v',	NO_ARGUMENT,		'logical'
 ), byrow=TRUE, ncol=4)
 
 if (interactive()) {
     cat("*** Setting interactive options\n")
 
     args=c(
-        "-v", "-b", "-r", "100", "-t", "2", 
+        "-v", "-r", "100", "-t", "2", "-t", "1", "-p",
         "-f", "CDRS.t.score.scaled.diff ~ mri + age.in.years",
         "-d", "/data/sanDiego/machLearnT1Analysis/data/config/data.table.mdd.CDRS.t.score.L_whole_amygdala.3mm.tab",
         "-s", "/data/sanDiego/machLearnT1Analysis/data/group.results",
         "-i", "restingstate.mddOnly.L_whole_amygdala3.mm.CDRS.t.score.scaled.diff"
     )
+    ##the name of this script
+    script.name=parent.frame(2)$ofile
+    ## the location (absolute path) to this script
+    script.location=normalizePath(dirname(parent.frame(2)$ofile))
+    
+    command.line=paste(file.path(script.location, script.name), paste(args, collapse=" "))
     opt = getopt(command.line.argument.specification, opt=args)
 } else {
+    args.start.at=grep("--args", commandArgs(), fixed=TRUE)
+    command.line=paste(get_Rscript_filename(), paste(commandArgs()[-c(1:args.start.at)], collapse=" "))
     opt = getopt(command.line.argument.specification)
 }
-opt=checkCommandLineArguments(opt)
-printOptionsSummary()
+
+opt=check.command.line.arguments(opt)
+print.command.line.arguments.summary()
 
 ## stop("Check the output of the getopt processing\n")
 
-data.table=readDataTable(opt$datatable)
+data.table=read.data.table(opt$datatable)
 ## data.table$InputFile=file.path("/Volumes", data.table$InputFile)
 stop.if.not.valid.data.table(data.table)
+print.data.table.summary(data.table)
 stop.if.not.valid.formula(opt$formula, data.table)
 conditionally.make.session.dir(opt)
 
@@ -512,8 +558,9 @@ print(head(model))
 model.formula=as.formula(opt$formula)
 
 rlm.values=test.model(model.formula, model, mr.data, opt)
-test.rlm.coeff=rlm.values[[1]]
-test.rlm.dof=rlm.values[[2]]
+test.rlm.coeff=rlm.values[["test.rlm.coeff"]]
+test.rlm.dof=rlm.values[["test.rlm.dof"]]
+## number.of.residuals=length(rlm.values[["test.rlm.residuals"]])
 
 ## stop("Check the test model\n")
 
@@ -521,105 +568,119 @@ test.rlm.dof=rlm.values[[2]]
 ## output stats bucket file. The labels will be dictated by the
 ## model formula and importantly the order in which the coefficients
 ## from the RLM coefficient matrix are concatenated
-## the makeBrikLabels
+## the make.brik.labels
 ## function does not include the mean of the fMRI at the start of
 ## the list of labels so include it here with the c()
-sub.brik.labels=makeBrikLabels(test.rlm.coeff, inBoot=opt$bootstrap)
+sub.brik.labels=make.brik.labels(test.rlm.coeff, inBoot=opt$bootstrap)
 
 outputStatsBrikLabels=c("Mean", sub.brik.labels[["labels"]])
 
-## we add 1 to both numberOfStatsBriks and numberOfStatsBriks
-## becasue makeBrikLabels does not take into account the
+## we add 1 to both number.of.stats.briks and number.of.stats.briks
+## becasue make.brik.labels does not take into account the
 ## fact that we will add an additional subbrik (the mean) to
-## the output stats. Hence the output of makeBrikLabels is
+## the output stats. Hence the output of make.brik.labels is
 ## always 1 too small
 
 ## the number of stats subbriks to write out. This is dictated by the
 ## model Formula, changes to it likely imply changes to this number
-numberOfStatsBriks=length(outputStatsBrikLabels)
+number.of.stats.briks=length(outputStatsBrikLabels)
 
 bootstrapStatsStartAt=NA
 if (opt$bootstrap) {
     bootstrapStatsStartAt=sub.brik.labels[["bootstrapLabelsStartAt"]] + 1
 }
 
-stop("Stopping")
+## stop("Stopping")
 
 maxIter=25
+mr.data.dims=dim(mr.data)
 
-Stats = array(0, c(dimX, dimY, dimZ, numberOfStatsBriks))
-cat(paste("Starting at", date(), "\n"))
-startTime=proc.time()
-if (useProgressBar) {
-    pb <- txtProgressBar(min = 0, max = dimZ, style = 3)
+statistics.array = array(0, c(mr.data.dims[1], mr.data.dims[2], mr.data.dims[3], number.of.stats.briks))
+## residuals.array  = array(0, c(mr.data.dims[1], mr.data.dims[2], mr.data.dims[3], number.of.residuals))
+cat(paste("*** Starting at", date(), "\n"))
+start=Sys.time()
+if (opt$progress) {
+    pb <- txtProgressBar(min = 0, max = mr.data.dims[3], style = 3)
 }
-if (ncpus > 1 ) {
+if (opt$threads > 1 ) {
     ## multiple cpus
     library(snow)
     
     ## cluster = makeCluster(ncpus, type = "SOCK")
     cat("*** Starting cluster... ")
-    cluster = makeCluster(rep("localhost", ncpus), type = "SOCK", outfile=file.path(group.results.dir, cluster.log.filename))
+    cluster = makeCluster(rep("localhost", opt$threads), type = "SOCK", outfile=file.path(opt$session, cluster.log.filename))
     clusterEvalQ(cluster, library(MASS))
     clusterEvalQ(cluster, library(boot))
-    clusterExport(cluster, c("bootRegression", "runRegression"))
+    clusterExport(cluster, c("boot.regression", "run.regression"))
     clusterSetupRNG(cluster, seed=seed.value)
     cat("Done\n")
     ##function (inData, inNumberOfStatsBriks, inModel, inModelFormula, inMaxIt=50, inBoot=FALSE, inR=25, inBootstrapStatsStartAt=NA) {
-    for ( kk in 1:dimZ) {
-        if (useProgressBar) {
+    for ( kk in 1:mr.data.dims[3]) {
+        if (opt$progress) {
             setTxtProgressBar(pb, kk)
         } else {
             cat(paste("Processing Z slice", kk, "started at" , date(), "\n"))
         }
-        Stats[ , , kk, ] = aperm(parApply(cluster, mr.data[ , , kk, ],  c(1, 2), runRegression,
-                 inNumberOfStatsBriks=numberOfStatsBriks, inModel=model, inModelFormula=model.formula, inMaxIt=maxIter,
-                 inBoot=opt$bootstrap, inR=opt$resamples, inBootstrapStatsStartAt=bootstrapStatsStartAt), c(2, 3, 1))
+        statistics.array[ , , kk, ] =
+            aperm(parApply(cluster, mr.data[ , , kk, ],  c(1, 2), run.regression,
+                           inNumberOfStatsBriks=number.of.stats.briks, inModel=model, inModelFormula=model.formula, inMaxIt=maxIter,
+                           inBoot=opt$bootstrap, inR=opt$resamples, inBootstrapStatsStartAt=bootstrapStatsStartAt), c(2, 3, 1))
     }
     stopCluster(cluster)
 } else {
-    for ( kk in 1:dimZ ) {
-        ## for ( kk in 32:32 ) {            
+    for ( kk in 1:mr.data.dims[3] ) {
+        ## for ( kk in 31:31 ) {            
         ## single cpu
-        if (useProgressBar) {
+        if (opt$progress) {
             setTxtProgressBar(pb, kk)
         } else {
             cat(paste("Processing Z slice", kk, "started at" , date(), "\n"))
         }
-        Stats[ , , kk, ] = aperm(apply(mr.data[ , , kk, ],  c(1, 2), runRegression,
-                 inNumberOfStatsBriks=numberOfStatsBriks, inModel=model, inModelFormula=model.formula, inMaxIt=maxIter,
-                 inBoot=opt$bootstrap, inR=opt$resamples, inBootstrapStatsStartAt=bootstrapStatsStartAt), c(2, 3, 1))
+        statistics.array[ , , kk, ] =
+            aperm(apply(mr.data[ , , kk, ],  c(1, 2), run.regression,
+                        inNumberOfStatsBriks=number.of.stats.briks, inModel=model, inModelFormula=model.formula, inMaxIt=maxIter,
+                        inBoot=opt$bootstrap, inR=opt$resamples, inBootstrapStatsStartAt=bootstrapStatsStartAt), c(2, 3, 1))
     }
+    ## do something with the resudials here
     
-    ## the line below is useful for debugging the runRegression function, particularly when using boot strapping
-    ## Stats[i, j, k, ] = runRegression(mr.data[i, j, k, ], inNumberOfStatsBriks=numberOfStatsBriks, inModel=model, inModelFormula=model.formula, inMaxIt=maxIter,
-    ##          inBoot=opt$bootstrap, inR=opt$resamples, inBootstrapStatsStartAt=bootstrapStatsStartAt)
+    ## the lines below is useful for debugging the run.regression function, particularly when using boot strapping
+    ## i = 21
+    ## j = 21
+    ## k = 31
+    ## out.stats.list = run.regression(mr.data[i, j, k, ], inNumberOfStatsBriks=number.of.stats.briks, inModel=model, inModelFormula=model.formula, inMaxIt=maxIter,
+    ##     inBoot=opt$bootstrap, inR=opt$resamples, inBootstrapStatsStartAt=bootstrapStatsStartAt)
 }
-
-if (useProgressBar) {
+cat("\n")
+if (opt$progress) {
     close(pb)
 }
 
-cat(paste("Ended at", date(), "\n"))
-cat("Time consumed\n")
-print(proc.time() - startTime)
+end=Sys.time()
+cat("*** Finished running regression models at:", date(), "\n")
+suppressMessages(library(chron))
+cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")
 
-##stop()
 
-rlmOutBrikFilename=paste(stats.bucket.prefix, ".", format(Sys.time(), "%Y%m%d-%H%M%Z"), view.AFNI.name(inputBrikFilename), sep="")
-rlmOutBrikFqfn=file.path(group.results.dir, rlmOutBrikFilename)
+## stop()
+
+## this is used to get the header fro saving the stats and residuals
+## brik files
+first.brik=read.first.inputfile(data.table)
+
+rlmOutBrikFilename=paste(stats.bucket.prefix, ".", format(Sys.time(), "%Y%m%d-%H%M%Z"), view.AFNI.name(data.table[1, "InputFile"]), sep="")
+rlmOutBrikFqfn=file.path(opt$session, rlmOutBrikFilename)
 hostname=system('hostname', intern=T)
 user=Sys.getenv("USER")
 cat("*** Writing bucket file ", rlmOutBrikFqfn, "\n")
 
 write.AFNI(rlmOutBrikFqfn,
-           Stats, verb=verbose,
+           statistics.array, verb=opt$verbose,
            ##label = baselineBrik$head$DATASET_NAME,
            label=outputStatsBrikLabels,
            note = paste(
-               paste(paste("[", user, "@", hostname, ": ",  date(), "]", sep=""), get_Rscript_filename()),
-               paste("Model  formula:", gsub("~", "TILDE ", capture.output(print(model.formula)))[1], sep=" ")),
-           defhead=inputBrik)
+               paste(paste("[", user, "@", hostname, ": ",  date(), "]", sep="")),
+               paste("Command line:", gsub("~", "TILDE", command.line), sep=" ")),
+           defhead=first.brik)
 ## origin = inputBrik$origin,
 ## delta = inputBrik$delta,
 ## orient= inputBrik$orient)
@@ -627,12 +688,12 @@ write.AFNI(rlmOutBrikFqfn,
 statpar = "3drefit"
 
 if ( is.matrix(test.rlm.coeff) ) {
-    cat ("Making statpar arguments\n")
+    cat ("*** Making statpar arguments\n")
     
-    afniTtestBrikIds=makeAfniTtestBrikIds(test.rlm.coeff, inBoot=opt$boot)
-    statparArguments=makeAfniStatparArguments(temp.rlm.dof[2], afniTtestBrikIds)
+    afniTtestBrikIds=make.afni.ttest.brik.ids(test.rlm.coeff, inBoot=opt$boot)
+    statparArguments=make.afni.statpar.arguments(test.rlm.dof[2], afniTtestBrikIds)
     statpar = paste(statpar, statparArguments)    
 }
-statpar = paste("(cd",  group.results.dir, ";", statpar, " -view tlrc -space MNI -addFDR -newid ", rlmOutBrikFilename, ")")
-cat(statpar, "\n")
+statpar = paste("(cd",  opt$session, ";", statpar, " -view tlrc -space MNI -addFDR -newid ", rlmOutBrikFilename, ")")
+cat("*** Running", statpar, "\n")
 system(statpar)
