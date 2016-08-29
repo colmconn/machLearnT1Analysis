@@ -78,6 +78,11 @@ make.afni.statpar.arguments <- function(inDf, inAfniTtestBrikIds) {
     return( paste(sapply(inAfniTtestBrikIds, function(x) { sprintf("-substatpar %d fitt %d", x[1], inDf) }), collapse=" ") )
 }
 
+make.statssym.list <- function (in.dof, in.afni.ttest.brik.ids) {
+    lapply(in.afni.ttest.brik.ids, function (xx) list(sb=xx, typ="Ttest", par=in.dof))
+}
+
+
 ## this is a very trimmed down version of the run.regression function
 ## below. It is only for use with bootstrapping
 boot.regression<- function(inData, inIndices, inModelFormula, inMaxIt=50, inNumberOfBetaValues) {
@@ -178,8 +183,8 @@ run.regression <- function (inData, inNumberOfStatsBriks, inModel, inModelFormul
     } ## end of if ( ! all(inData == 0 ) ) {
 
     ## cat ("out.stats is: ", out.stats, "\n")
-    ## longest.label=max(sapply(outputStatsBrikLabels, nchar))
-    ## cc=cbind (outputStatsBrikLabels, out.stats)
+    ## longest.label=max(sapply(output.stats.brik.labels, nchar))
+    ## cc=cbind (output.stats.brik.labels, out.stats)
     ## cc=cbind(seq(1:dim(cc)[1]), cc)
     ## cat(apply(cc, 1,
     ##           function(xx) {
@@ -573,7 +578,7 @@ test.rlm.dof=rlm.values[["test.rlm.dof"]]
 ## the list of labels so include it here with the c()
 sub.brik.labels=make.brik.labels(test.rlm.coeff, inBoot=opt$bootstrap)
 
-outputStatsBrikLabels=c("Mean", sub.brik.labels[["labels"]])
+output.stats.brik.labels=c("Mean", sub.brik.labels[["labels"]])
 
 ## we add 1 to both number.of.stats.briks and number.of.stats.briks
 ## becasue make.brik.labels does not take into account the
@@ -583,7 +588,7 @@ outputStatsBrikLabels=c("Mean", sub.brik.labels[["labels"]])
 
 ## the number of stats subbriks to write out. This is dictated by the
 ## model Formula, changes to it likely imply changes to this number
-number.of.stats.briks=length(outputStatsBrikLabels)
+number.of.stats.briks=length(output.stats.brik.labels)
 
 bootstrapStatsStartAt=NA
 if (opt$bootstrap) {
@@ -660,40 +665,38 @@ cat("*** Finished running regression models at:", date(), "\n")
 suppressMessages(library(chron))
 cat("*** Computation took", format(as.chron(end) - as.chron(start)), "\n")
 
+## now if save the HEAD/BRIK and run 3drefit to set the statistical parameters, view, space and ID, 
+if (is.matrix(test.rlm.coeff)) {
 
-## stop()
+    ## this is used to get the header for saving the stats brik file
+    first.brik=read.first.inputfile(data.table)
 
-## this is used to get the header fro saving the stats and residuals
-## brik files
-first.brik=read.first.inputfile(data.table)
+    rlm.out.brik.filename=paste(stats.bucket.prefix, ".", format(Sys.time(), "%Y%m%d-%H%M%Z"), sep="")
+    rlm.out.brik.fqfn=file.path(opt$session, rlm.out.brik.filename)
+    cat("*** Writing bucket file ", rlm.out.brik.fqfn, "\n")
 
-rlmOutBrikFilename=paste(stats.bucket.prefix, ".", format(Sys.time(), "%Y%m%d-%H%M%Z"), view.AFNI.name(data.table[1, "InputFile"]), sep="")
-rlmOutBrikFqfn=file.path(opt$session, rlmOutBrikFilename)
-hostname=system('hostname', intern=T)
-user=Sys.getenv("USER")
-cat("*** Writing bucket file ", rlmOutBrikFqfn, "\n")
+    command.history=gsub("~", "TILDE", command.line)
+    afni.ttest.brik.ids=make.afni.ttest.brik.ids(test.rlm.coeff, inBoot=opt$boot)
+    statssym.list=make.statssym.list(test.rlm.dof[2], afni.ttest.brik.ids)
+    write.AFNI(rlm.out.brik.fqfn,
+               statistics.array,
+               statsym=statssym.list,
+               verb=opt$verbose,
+               view=view.AFNI.name(data.table[1, "InputFile"]),
+               addFDR=FALSE,
+               label=output.stats.brik.labels,
+               com_hist=command.history,
+               defhead=first.brik)
 
-write.AFNI(rlmOutBrikFqfn,
-           statistics.array, verb=opt$verbose,
-           ##label = baselineBrik$head$DATASET_NAME,
-           label=outputStatsBrikLabels,
-           note = paste(
-               paste(paste("[", user, "@", hostname, ": ",  date(), "]", sep="")),
-               paste("Command line:", gsub("~", "TILDE", command.line), sep=" ")),
-           defhead=first.brik)
-## origin = inputBrik$origin,
-## delta = inputBrik$delta,
-## orient= inputBrik$orient)
-
-statpar = "3drefit"
-
-if ( is.matrix(test.rlm.coeff) ) {
     cat ("*** Making statpar arguments\n")
+    statpar = "3drefit"
     
-    afniTtestBrikIds=make.afni.ttest.brik.ids(test.rlm.coeff, inBoot=opt$boot)
-    statparArguments=make.afni.statpar.arguments(test.rlm.dof[2], afniTtestBrikIds)
-    statpar = paste(statpar, statparArguments)    
+    statpar = paste("(cd",  opt$session, ";", statpar, "-addFDR",
+        paste(rlm.out.brik.filename, view.AFNI.name(data.table[1, "InputFile"]), sep=""),
+        ")")    
+    cat("*** Running", statpar, "\n")
+    system(statpar)
+} else {
+    stop("*** The test.rlm.coeff was not a matrix. Could not save the results HEAD/BRIK\n")
 }
-statpar = paste("(cd",  opt$session, ";", statpar, " -view tlrc -space MNI -addFDR -newid ", rlmOutBrikFilename, ")")
-cat("*** Running", statpar, "\n")
-system(statpar)
+   
