@@ -6,11 +6,17 @@ cd /data/sanDiego/machLearnT1Analysis/data
 
 subjects=$( ls -d [0-9][0-9][0-9]_[A]* )
 
-LOG_TAIL=afniPreprocFromTemplate.log
+## excessive motion threshold = 0.30
+#LOG_TAIL=afniPreprocFromTemplate.log
+#PREPROC_DIR=afniRsfcPreprocessed.noanaticor.NL.0.30
+
+## excessive motion threshold = 0.25
+LOG_TAIL=afniPreproc.noanaticor.NL.log
+PREPROC_DIR=afniRsfcPreprocessed.noanaticor.NL.0.25
 
 ## subjects="105_A 106_A 107_A 108_A 109_A 111_A"
 
-## subjects="149_A"
+# subjects="303_A"
 
 excessiveMotionThresholdFraction=0.2
 echo "subject,anat HEAD,anat BRIK,resting HEAD,resting BRIK,all files OK?,resting nt,xmat?,numberOfCensoredVolumes,cutoff,inc/exc,sufficient data?"
@@ -60,10 +66,10 @@ for ss in $subjects ; do
     fi
 
     xmat_regress=X.xmat.1D 
-    if [[ -f $ss/afniRsfcPreprocessed/$xmat_regress ]] ; then 
-	fractionOfCensoredVolumes=$( 1d_tool.py -infile $ss/afniRsfcPreprocessed/$xmat_regress -show_tr_run_counts frac_cen )
-	numberOfCensoredVolumes=$(   1d_tool.py -infile $ss/afniRsfcPreprocessed/$xmat_regress -show_tr_run_counts trs_cen )
-	totalNumberOfVolumes=$(      1d_tool.py -infile $ss/afniRsfcPreprocessed/$xmat_regress -show_tr_run_counts trs_no_cen )
+    if [[ -f $ss/$PREPROC_DIR/$xmat_regress ]] ; then 
+	fractionOfCensoredVolumes=$( 1d_tool.py -infile $ss/$PREPROC_DIR/$xmat_regress -show_tr_run_counts frac_cen )
+	numberOfCensoredVolumes=$(   1d_tool.py -infile $ss/$PREPROC_DIR/$xmat_regress -show_tr_run_counts trs_cen )
+	totalNumberOfVolumes=$(      1d_tool.py -infile $ss/$PREPROC_DIR/$xmat_regress -show_tr_run_counts trs_no_cen )
 
 	## cutoff=$( echo "scale=0; $excessiveMotionThresholdFraction*$totalNumberOfVolumes" | bc | cut -f 1 -d '.' )
 	## rounding method from http://www.alecjacobson.com/weblog/?p=256
@@ -76,7 +82,7 @@ for ss in $subjects ; do
 	fi
     else
 	if [[ -f  $ss/${ss}-rsfc-${LOG_TAIL} ]] ; then 
-	    censorCounts=( $( grep "Number of time points" $ss/${ss}-rsfc-${LOG_TAIL} | awk -F ";|:" '{print $2, $3}' | awk '{print $1, $4}') )
+	    censorCounts=( $( grep -a "Number of time points" $ss/${ss}-rsfc-${LOG_TAIL} | awk -F ";|:" '{print $2, $3}' | awk '{print $1, $4}') )
 	    # ${censorCounts[0]} = total number of volumes
 	    # ${censorCounts[1]} = total number of volumes left after censoring
 	    totalNumberOfVolumes=${censorCounts[0]}

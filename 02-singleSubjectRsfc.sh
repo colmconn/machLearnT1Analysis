@@ -17,7 +17,7 @@ SCRIPTS_DIR=${ROOT}/scripts
 
 . ${SCRIPTS_DIR}/logger_functions.sh
 
-GETOPT_OPTIONS=$( $GETOPT  -o "s:l:" --longoptions "subject:,seedlist:" -n ${programName} -- "$@" )
+GETOPT_OPTIONS=$( $GETOPT  -o "s:l:p:r:" --longoptions "subject:,seedlist:,preproc:,rsfc:" -n ${programName} -- "$@" )
 exitStatus=$?
 if [ $exitStatus != 0 ] ; then 
     error_message "Error with getopt. Terminating..." >&2 
@@ -32,6 +32,10 @@ while true ; do
 	    subjectNumber=$2; shift 2 ;;
 	-l|--seedlist)
 	    seedList=$2; shift 2 ;;
+	-p|--preproc)
+	    preprocDir=$2; shift 2 ;;	    
+	-r|--rsfc)
+	    rsfcDir=$2; shift 2 ;;	    
 	--) 
 	    shift ; break ;;
 
@@ -40,6 +44,16 @@ while true ; do
 	    exit 2 ;;
     esac
 done
+
+if [ -z $rsfcDir ] ; then 
+    error_message "ERROR: The name of the direcotry into which to save the RSFC data was not provided. Exiting"
+    exit
+fi
+
+if [ -z $preprocDir ] ; then 
+    error_message "ERROR: The name of the direcotry where the preoprocessed RSFC data is stored was not provided. Exiting"
+    exit
+fi
 
 if [ -z $subjectNumber ] ; then 
     error_message "ERROR: The subject ID was not provided. Exiting"
@@ -56,14 +70,14 @@ fi
 info_message "Computing RSFC for the following seeds:"
 info_message $seeds
 
-if [[ ! -d $DATA/$subjectNumber/rsfc ]] ; then
-    mkdir $DATA/$subjectNumber/rsfc
+if [[ ! -d $DATA/$subjectNumber/$rsfcDir ]] ; then
+    mkdir $DATA/$subjectNumber/$rsfcDir
 fi
-cd $DATA/$subjectNumber/rsfc
+cd $DATA/$subjectNumber/$rsfcDir
 
-preprocessedRsfcDir=$DATA/$subjectNumber/afniRsfcPreprocessed
+preprocessedRsfcDir=$DATA/$subjectNumber/$preprocDir
 
-if [[ -f ${preprocessedRsfcDir}/errts.${subjectNumber}.anaticor+tlrc.HEAD ]] ; then 
+if [[ -f ${preprocessedRsfcDir}/errts.${subjectNumber}.tproject+tlrc.HEAD ]] ; then 
     for seed in $seeds ; do
 
 	seedName=${seed##*/}
@@ -78,10 +92,10 @@ if [[ -f ${preprocessedRsfcDir}/errts.${subjectNumber}.anaticor+tlrc.HEAD ]] ; t
 	fi
 
 	info_message "Extracting timeseries for seed ${seed}"
-	3dROIstats -quiet -mask_f2short -mask ${seed} ${preprocessedRsfcDir}/errts.${subjectNumber}.anaticor+tlrc.HEAD > ${seedName}/${seedName}.ts.1D
+	3dROIstats -quiet -mask_f2short -mask ${seed} ${preprocessedRsfcDir}/errts.${subjectNumber}.tproject+tlrc.HEAD > ${seedName}/${seedName}.ts.1D
 
 	info_message "Computing Correlation for seed ${seedName}"
-	3dfim+ -input ${preprocessedRsfcDir}/errts.${subjectNumber}.anaticor+tlrc.HEAD -ideal_file ${seedName}/${seedName}.ts.1D -out Correlation -bucket ${seedName}/${seedName}_corr
+	3dfim+ -input ${preprocessedRsfcDir}/errts.${subjectNumber}.tproject+tlrc.HEAD -ideal_file ${seedName}/${seedName}.ts.1D -out Correlation -bucket ${seedName}/${seedName}_corr
 	
 	info_message "Z-transforming correlations for seed ${seedName}"
 	3dcalc -datum float -a ${seedName}/${seedName}_corr+tlrc.HEAD -expr 'log((a+1)/(a-1))/2' -prefix ${seedName}/${seedName}.z-score

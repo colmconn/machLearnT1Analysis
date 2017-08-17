@@ -5,8 +5,6 @@ rm(list=ls())
 library(MASS)
 library(getopt)
 
-source("scoreMasc.r")
-
 AFNI_R_DIR=Sys.getenv("AFNI_R_DIR", unset=NA)
 
 ## use the functions for loading and saving briks from the AFNI
@@ -110,75 +108,77 @@ run.regression <- function (inData, inNumberOfStatsBriks, inModel, inModelFormul
         ## branch and can try the rlm
         
         inModel$mri<-inData
-        myrlm <- rlm(inModelFormula, data = inModel, maxit=inMaxIt)
-        ## full.model.residuals=residuals(myrlm)
-        numberOfBetaValues=length(coefficients(myrlm))
-        ## print(myrlm)
-        ## print(summary(myrlm))
-        out.stats[1] = mean(inModel$mri)
-        ## cat("out.stats[1] = ",  out.stats[1], "\n")
-        
-        ## print(summary(myrlm))
-        ## > coef(summary(model))
-        ## Value Std. Error    t value
-        ## (Intercept) 89.09177404  8.0221830 11.1056770
-        ## Age          0.04087267  0.1146234  0.3565821
-        ## Educ         0.71157766  0.5370092  1.3250753
-        ## as.vector(t(coef(summary(model))))
-        ## [1] 89.09177404  8.02218304 11.10567705  0.04087267  0.11462344  0.35658210  0.71157766  0.53700922  1.32507531
-
-        model.coefficients=as.vector(t(coef(summary(myrlm))))
-        ## cat ("model.coefficients: ", model.coefficients, "\n")
-        
-        ## stop("Check stuff")
-        
-        if (inBoot) {
-            ## cat("boot out.stats indices 2:(inBootstrapStatsStartAt-1)", 2:(inBootstrapStatsStartAt-1), "\n")
-            out.stats[2:(inBootstrapStatsStartAt-1)]=model.coefficients
+        if ( ! inherits(myrlm <- try(rlm(inModelFormula, data = inModel, maxit=inMaxIt), silent=TRUE),
+                        "try-error") ) {
+            ## full.model.residuals=residuals(myrlm)
+            numberOfBetaValues=length(coefficients(myrlm))
+            ## print(myrlm)
+            ## print(summary(myrlm))
+            out.stats[1] = mean(inModel$mri)
+            ## cat("out.stats[1] = ",  out.stats[1], "\n")
             
-            if (is.na(inBootstrapStatsStartAt)) {
-                stop("*** ERROR in run.regression: inBootstrapStatsStartAt has not been set. It is currently NA. Cannot continue. Stopping\n")
-            }
+            ## print(summary(myrlm))
+            ## > coef(summary(model))
+            ## Value Std. Error    t value
+            ## (Intercept) 89.09177404  8.0221830 11.1056770
+            ## Age          0.04087267  0.1146234  0.3565821
+            ## Educ         0.71157766  0.5370092  1.3250753
+            ## as.vector(t(coef(summary(model))))
+            ## [1] 89.09177404  8.02218304 11.10567705  0.04087267  0.11462344  0.35658210  0.71157766  0.53700922  1.32507531
 
-            ## cat ("inside inBoot out.stats is: ", out.stats, "\n")
-            ## cat ("number of stats briks should be: ", length(2:(inBootstrapStatsStartAt-1)), "\n")
+            model.coefficients=as.vector(t(coef(summary(myrlm))))
+            ## cat ("model.coefficients: ", model.coefficients, "\n")
             
-            boot.stats=boot(inModel, boot.regression, R=inR, inModelFormula=inModelFormula, inMaxIt=inMaxIt, inNumberOfBetaValues=numberOfBetaValues)
-            ## cat("boot.stats is\n")
-            ## print(boot.stats)
-            ## print(class(boot.stats))
-            ## print(is.vector(boot.stats))
-            if (is(boot.stats, "boot")) {
-                ## these are vectors with as many columns as there are terms in
-                ## the regression model. Don't forget to include the intercept
-                ## (assuming there is one in the model) when you're trying
-                ## to mentalize this
-                ## really need to add the mean bootstrapped coefficient values to the output stats vector
-                boot.beta.mean=apply(boot.stats$t, 2, mean)
-                boot.bias=boot.beta.mean - boot.stats$t0
-                boot.se.coeff=apply(boot.stats$t, 2, sd)
-                boot.t.coeff=boot.stats$t0 / boot.se.coeff
-
-                ## cat("boot.beta.mean is: ", boot.beta.mean, "\n")
-                ## cat("boot.bias is     : ", boot.bias, "\n")                
-                ## cat("boot.se.coeff is : ", boot.se.coeff, "\n")
-                ## cat("boot.t.coeff is  : ", boot.t.coeff, "\n")
-
-                start.at=inBootstrapStatsStartAt
-                for (term.index in seq(1, length(boot.t.coeff))) {
-                    ## the normal element of the CI value contains 3 elements: 1) the CI
-                    ## level (in this case 0.95), 2) the lower bound on the CI, 3) the
-                    ## upper bound on the CI
-                    ci=boot.ci(boot.stats, conf = c(0.95), type = c("norm"), index = term.index)$normal[2:3]
-                    ## cat("ci for", names(boot.stats$t0)[term.index], "is:", ci, "\n")
-                    ## cat("out.stats indices start.at:(start.at+3)", start.at:(start.at+3), "\n")
-                    out.stats[start.at:(start.at+4)] = c(boot.beta.mean[term.index], boot.bias[term.index], boot.t.coeff[term.index], ci)
-                    start.at=start.at+5
+            ## stop("Check stuff")
+            
+            if (inBoot) {
+                ## cat("boot out.stats indices 2:(inBootstrapStatsStartAt-1)", 2:(inBootstrapStatsStartAt-1), "\n")
+                out.stats[2:(inBootstrapStatsStartAt-1)]=model.coefficients
+                
+                if (is.na(inBootstrapStatsStartAt)) {
+                    stop("*** ERROR in run.regression: inBootstrapStatsStartAt has not been set. It is currently NA. Cannot continue. Stopping\n")
                 }
+
+                ## cat ("inside inBoot out.stats is: ", out.stats, "\n")
+                ## cat ("number of stats briks should be: ", length(2:(inBootstrapStatsStartAt-1)), "\n")
+                
+                boot.stats=boot(inModel, boot.regression, R=inR, inModelFormula=inModelFormula, inMaxIt=inMaxIt, inNumberOfBetaValues=numberOfBetaValues)
+                ## cat("boot.stats is\n")
+                ## print(boot.stats)
+                ## print(class(boot.stats))
+                ## print(is.vector(boot.stats))
+                if (is(boot.stats, "boot")) {
+                    ## these are vectors with as many columns as there are terms in
+                    ## the regression model. Don't forget to include the intercept
+                    ## (assuming there is one in the model) when you're trying
+                    ## to mentalize this
+                    ## really need to add the mean bootstrapped coefficient values to the output stats vector
+                    boot.beta.mean=apply(boot.stats$t, 2, mean)
+                    boot.bias=boot.beta.mean - boot.stats$t0
+                    boot.se.coeff=apply(boot.stats$t, 2, sd)
+                    boot.t.coeff=boot.stats$t0 / boot.se.coeff
+
+                    ## cat("boot.beta.mean is: ", boot.beta.mean, "\n")
+                    ## cat("boot.bias is     : ", boot.bias, "\n")                
+                    ## cat("boot.se.coeff is : ", boot.se.coeff, "\n")
+                    ## cat("boot.t.coeff is  : ", boot.t.coeff, "\n")
+
+                    start.at=inBootstrapStatsStartAt
+                    for (term.index in seq(1, length(boot.t.coeff))) {
+                        ## the normal element of the CI value contains 3 elements: 1) the CI
+                        ## level (in this case 0.95), 2) the lower bound on the CI, 3) the
+                        ## upper bound on the CI
+                        ci=boot.ci(boot.stats, conf = c(0.95), type = c("norm"), index = term.index)$normal[2:3]
+                        ## cat("ci for", names(boot.stats$t0)[term.index], "is:", ci, "\n")
+                        ## cat("out.stats indices start.at:(start.at+3)", start.at:(start.at+3), "\n")
+                        out.stats[start.at:(start.at+4)] = c(boot.beta.mean[term.index], boot.bias[term.index], boot.t.coeff[term.index], ci)
+                        start.at=start.at+5
+                    }
+                }
+            } else {
+                ## cat("no boot out.stats indices 2:inNumberOfStatsBriks", 2:inNumberOfStatsBriks, "\n")
+                out.stats[2:inNumberOfStatsBriks]=model.coefficients
             }
-        } else {
-            ## cat("no boot out.stats indices 2:inNumberOfStatsBriks", 2:inNumberOfStatsBriks, "\n")
-            out.stats[2:inNumberOfStatsBriks]=model.coefficients
         }
     } ## end of if ( ! all(inData == 0 ) ) {
 
@@ -339,11 +339,10 @@ stop.if.not.valid.data.table <- function(in.data.table) {
                   paste(unique.brik.file.views, collapse=", "), "\n"))
         stop("*** Cannot continue\n")
     }
-    length(unique(vapply(data.table[, "InputFile"], view.AFNI.name, "")))
-    
+
     n.nonmandatory.columns=length(colnames(in.data.table)[-c(1, length(colnames(in.data.table)))])
     if (n.nonmandatory.columns < 1) {
-        stop("*** Data table must contain at least 1 (one) non mandatory column to condict regression\n")
+        stop("*** Data table must contain at least 1 (one) non mandatory column to conduct regression\n")
     }
     if (opt$verbose) {
         cat("*** Data table passes validity checks\n")
@@ -610,7 +609,7 @@ if (opt$progress) {
 if (opt$threads > 1 ) {
     ## multiple cpus
     library(snow)
-    
+    seed.value=123456789
     ## cluster = makeCluster(ncpus, type = "SOCK")
     cat("*** Starting cluster... ")
     cluster = makeCluster(rep("localhost", opt$threads), type = "SOCK", outfile=file.path(opt$session, cluster.log.filename))

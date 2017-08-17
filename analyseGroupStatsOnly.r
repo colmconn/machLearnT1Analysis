@@ -581,14 +581,14 @@ make.proportions.test.string.for.results.stack <- function(in.table, in.prop.tes
     return(csvLine)
 }
 
-makeListOfAnatFiles <- function() {
-    ## 157_A.anat_struc.nii.gz
-    subjects = dir(vbm.data.dir, pattern=".*[_.]anat_struc.nii.gz")
-    if (length(subjects) == 0 ) {
-        stop(paste("No files in", vbm.data.dir, "matched the file selection pattern. Stopping.\n"))
-    }
-    return (subjects)
-}
+## makeListOfAnatFiles <- function() {
+##     ## 157_A.anat_struc.nii.gz
+##     subjects = dir(vbm.data.dir, pattern=".*[_.]anat_struc.nii.gz")
+##     if (length(subjects) == 0 ) {
+##         stop(paste("No files in", vbm.data.dir, "matched the file selection pattern. Stopping.\n"))
+##     }
+##     return (subjects)
+## }
 
 ##########################################################################################################################################################################
 ### END OF FUNCTIONS #####################################################################################################################################################
@@ -607,9 +607,11 @@ study.root.dir=normalizePath(file.path(root.dir, "sanDiego/machLearnT1Analysis")
 admin.data.dir=normalizePath(file.path(study.root.dir, "data/admin"))
 config.data.dir=normalizePath(file.path(study.root.dir, "data/config"))
 scripts.dir=normalizePath(file.path(study.root.dir, "scripts"))
-vbm.root.dir=normalizePath(file.path(study.root.dir, "data/vbm"))
-vbm.data.dir=normalizePath(file.path(vbm.root.dir, "struc"))
-stats.dir=normalizePath(file.path(vbm.root.dir, "stats"))
+group.results.dir=file.path(study.root.dir, "data", "group.results")
+#vbm.root.dir=normalizePath(file.path(study.root.dir, "data/vbm"))
+#vbm.data.dir=normalizePath(file.path(vbm.root.dir, "struc"))
+### stats.dir=normalizePath(file.path(vbm.root.dir, "stats"))
+stats.dir=group.results.dir
 
 ### setup filename variables
 ##demographicsFilename=file.path(admin.data.dir, "0-data_entry_current_10152013.csv")
@@ -641,14 +643,14 @@ cat(sprintf("*** Read WASI-II data for %s unique subjects\n",  length(unique(was
 ## having these loaded is useful if you need to cross check the
 ## subjects data frame against the subjects included in the VBM
 ## preprocessing
-subjects.from.list.files=do.call(rbind, lapply(
-    file.path(vbm.root.dir, c("mdd.subjectlist.txt",
-                              "ncl.subjectlist.txt")),
-    function(X) {
-        data.frame(read.table(X, header=FALSE, sep=""))
-    }
-))
-colnames(subjects.from.list.files)=c("ID")
+## subjects.from.list.files=do.call(rbind, lapply(
+##     file.path(vbm.root.dir, c("mdd.subjectlist.txt",
+##                               "ncl.subjectlist.txt")),
+##     function(X) {
+##         data.frame(read.table(X, header=FALSE, sep=""))
+##     }
+## ))
+## colnames(subjects.from.list.files)=c("ID")
 
 selectedColumns=c(
     "Grp", "Gender", "DOB", "MRI", "SES", "Tanner1", "Tanner2", "TannerAvg",
@@ -672,22 +674,30 @@ if (length(setdiff(selectedColumns, colnames(demographics))) != 0) {
 ####################################################################################################
 ### Set up the data frames for statistical analysis
 ####################################################################################################
+excessiveMotionThresholdFraction=0.25
+subject.list.filename=file.path(group.results.dir, sprintf("subject.list.mddAndNcl.CAEZ_L_whole_amygdala.3mm.%0.2f.csv", excessiveMotionThresholdFraction))
+subjects=data.frame(read.table(subject.list.filename))
+colnames(subjects)="subject"
+subjects <-  separate(subjects, subject, into=c("ID", "timepoint"), sep="_", remove=FALSE)
 
-subjects=makeListOfAnatFiles()
-subjects=data.frame(
-    "filename"=subjects,
-    "subject"=gsub("((?:MDD|NCL)[.])?(?:([0-9]+)_A[0-9]?)[_.]anat_struc.nii.gz", "\\2", subjects, fixed=FALSE),
-    "ID" = gsub("((?:MDD|NCL)[.])?(([0-9]+)_A[0-9]?)[_.]anat_struc.nii.gz", "\\2", subjects, fixed=FALSE),
-    "timepoint"= gsub("((?:MDD|NCL)[.])?(([0-9]+)_(A)[0-9]?)[_.]anat_struc.nii.gz", "\\4", subjects, fixed=FALSE))
-rownames(subjects)=NULL
+
+## subjects=makeListOfAnatFiles()
+## subjects=data.frame(
+##     "filename"=subjects,
+##     "subject"=gsub("((?:MDD|NCL)[.])?(?:([0-9]+)_A[0-9]?)[_.]anat_struc.nii.gz", "\\2", subjects, fixed=FALSE),
+##     "ID" = gsub("((?:MDD|NCL)[.])?(([0-9]+)_A[0-9]?)[_.]anat_struc.nii.gz", "\\2", subjects, fixed=FALSE),
+##     "timepoint"= gsub("((?:MDD|NCL)[.])?(([0-9]+)_(A)[0-9]?)[_.]anat_struc.nii.gz", "\\4", subjects, fixed=FALSE))
+## rownames(subjects)=NULL
+
+
 subjects$subject=as.factor(gsub("300", "169/300", as.character(subjects$subject), fixed=TRUE))
 subjects=cbind(
     subjects,
     ## demographics[match(subjects$subject, demographics$ID), c("Grp", "Gender", "DOB", "MRI", "CDRS.tscore")],
-    demographics[match(subjects$subject, demographics$ID), selectedColumns],    
-    wasi        [match(subjects$subject, wasi$SubID),      c("Verbal", "Performance", "Full")],
-    ctq         [match(subjects$subject, ctq$ID),          c("CTQ_TOTAL", "CTQ_EA", "CTQ_PA", "CTQ_SA", "CTQ_EN", "CTQ_PN", "CTQ_MD")])
-
+    demographics[match(subjects$ID, demographics$ID), selectedColumns],    
+    wasi        [match(subjects$ID, wasi$SubID),      c("Verbal", "Performance", "Full")],
+    ctq         [match(subjects$ID, ctq$ID),          c("CTQ_TOTAL", "CTQ_EA", "CTQ_PA", "CTQ_SA", "CTQ_EN", "CTQ_PN", "CTQ_MD")])
+subjects[subjects$ID=="378", "Gender"]="F"
 subjects$subjectWithTimePoint=as.factor(paste(subjects$subject, "A", sep="_"))
 subjects=cbind(
     subjects,
@@ -734,9 +744,9 @@ psychMeasures=list(
     list(variable="Full",           name="Wechsler Abbreviated Scale of Intelligence (Full)"),
     
     list(variable="CGI.CGAS",     name="Children's Global Assessment Scale"),
-    list(variable="PSWQ",         name="Penn State Worry Questionnaire"),
-    list(variable="CoRum",        name="Corumination Questionnaire"),
-    list(variable="RSQ.fixed",    name="Ruminative Responses Styles Questionnaire"),
+    ## list(variable="PSWQ",         name="Penn State Worry Questionnaire"),
+    ## list(variable="CoRum",        name="Corumination Questionnaire"),
+    ## list(variable="RSQ.fixed",    name="Ruminative Responses Styles Questionnaire"),
     
     list(variable="CDRS.tscore",  name="Children's Depression Rating Scale (Standardized)"),
     
@@ -755,7 +765,7 @@ psychMeasures=list(
     ## list(variable="SFMQ.total",     name="SFMQ"),
     ## list(variable="MADRS.raw",      name="Montgomery-Asberg Depression Rating Scale"),
     ## list(variable="BDI.II",         name="Beck Depression Inventory II"),
-    ## list(variable="CDI",            name="Children's Depression Inventory"),
+    list(variable="CDI",            name="Children's Depression Inventory"),
     ##list(variable="MASC.total",     name="Multidimensional Anxiety Scale for Children"),
     list(variable="MASC.tscore",    name="Multidimensional Anxiety Scale for Children (Standardized)")
     ## list(variable="C_Irritability", name="Caprara Irritability Scale"),
@@ -807,7 +817,7 @@ cat("### Demographic and Psychiatric Statistics\n")
 
 subjects=checkLessThanZero(subjects, inSetToNa=TRUE)
 ##graphVariables(subjects)
-results.table.filename=file.path(stats.dir, "psychometrics.results.table.csv")
+results.table.filename=file.path(stats.dir, sprintf("psychometrics.results.table.%0.2f.csv", excessiveMotionThresholdFraction))
 ## stop()
 
 ## 378 identified as trensgender, was biologically female and not on any hormone therapy

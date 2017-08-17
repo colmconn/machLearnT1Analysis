@@ -390,10 +390,10 @@ for subject in $subjects ; do
     	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
     	    ;;	
     	374_A)
-    	    # doZeropad $subject	    
-    	    # anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
-    	    # epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
-    	    # extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
+    	    doZeropad $subject	    
+    	    anatFile=${DATA}/$subject/$subject.anat.zp+orig.HEAD
+    	    epiFile=$DATA/$subject/${subject}.resting.zp+orig.HEAD
+    	    extraAlignmentArgs="-align_opts_aea -cost lpc -giant_move"
     	    ;;	
     	380_A)
     	    doZeropad $subject	    

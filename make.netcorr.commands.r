@@ -170,7 +170,7 @@ make.windows <- function (in.opt, in.length) {
         window.ends=(window.starts + in.opt$width) -1
         if (tail(window.ends, 1) < in.length) {
             if (! in.opt$quiet)
-                cat("*** WARNING: The dataset is not a multiple of the window with and will be truncated\n")
+                cat("*** WARNING: The dataset is not a multiple of the window width and will be truncated\n")
         }
         indices=cbind(window.starts, window.ends)
         windows=unlist(apply(indices, 1, function (xx) {

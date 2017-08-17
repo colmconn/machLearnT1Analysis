@@ -61,7 +61,6 @@ align_epi_anat.py -anat2epi			\
 		  -volreg off			\
 		  -tshift off			\
 		  -cost lpc			\
-		  -giant_move			\
 		  -multi_cost lpa lpc+ZZ mi
 
 

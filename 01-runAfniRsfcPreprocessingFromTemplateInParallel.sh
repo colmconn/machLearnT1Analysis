@@ -134,18 +134,18 @@ excessiveMotionThresholdPercentage=$excessiveMotionThresholdPercentage
 
 cd $DATA/$subject
 
-preprocessingScript=$SCRIPTS_DIR/afniRsfcPreprocessTemplate.csh
+preprocessingScript=$SCRIPTS_DIR/afniRsfcNoAnaticorPreprocessTemplate.csh
 
-outputDir=afniRsfcPreprocessed
-if [[ -d \$outputDir ]] && [[ ! -d \${outputDir}.orig ]] ; then
-    cp -ra \$outputDir \${outputDir}.orig
+outputDir=afniRsfcPreprocessed.noanaticor.NL
+if [[ -d \$outputDir ]] && [[ ! -d \${outputDir}.0.25 ]] ; then
+    cp -ra \$outputDir \${outputDir}.0.25
 fi
 
 if [[ -f \${preprocessingScript} ]] ; then 
-   tcsh -xef \${preprocessingScript} ${subject}
+   tcsh -xef \${preprocessingScript} $subject
 
     cd \${outputDir}
-    xmat_regress=X.xmat.1D
+    xmat_regress=X.xmat.1D 
     ## always delete any preexisting file so we can start fresh each time this is executed
     rm -f 00_DO_NOT_ANALYSE_${subject}_\${excessiveMotionThresholdPercentage}percent.txt
     if [[ -f \$xmat_regress ]] ; then 
@@ -154,9 +154,8 @@ if [[ -f \${preprocessingScript} ]] ; then
         numberOfCensoredVolumes=\$( 1d_tool.py -infile \$xmat_regress -show_tr_run_counts trs_cen )
         totalNumberOfVolumes=\$( 1d_tool.py -infile \$xmat_regress -show_tr_run_counts trs_no_cen )
 
-	## cutoff=\$( echo "scale=0; \$excessiveMotionThresholdFraction*\$totalNumberOfVolumes" | bc | cut -f 1 -d '.' )
         ## rounding method from http://www.alecjacobson.com/weblog/?p=256
-        cutoff=\$( echo "(\$(echo "scale=0;\$excessiveMotionThresholdFraction*\$totalNumberOfVolumes" | bc)+0.5)/1" | bc )
+        cutoff=\$( echo "((\$excessiveMotionThresholdFraction*\$totalNumberOfVolumes)+0.5)/1" | bc )
 	if [[ \$numberOfCensoredVolumes -gt \$cutoff ]] ; then 
 
 	    echo "*** A total of \$numberOfCensoredVolumes of
@@ -168,20 +167,22 @@ if [[ -f \${preprocessingScript} ]] ; then
 	    echo "*** WARNING: $subject will not be analysed due to having more than \${excessiveMotionThresholdPercentage}% of their volumes censored."
 	fi
 
-    	trs=\$( 1d_tool.py -infile \$xmat_regress -show_trs_uncensored encoded   \\
-                          -show_trs_run 01 )
-    	if [[ \$trs != "" ]] ; then  
-	    3dFWHMx -ACF -detrend -mask mask_group+tlrc                      \\
-        	errts.$subject.anaticor+tlrc"[\$trs]" > acf.blur.errts.1D
-	fi
+    	# trs=\$( 1d_tool.py -infile \$xmat_regress -show_trs_uncensored encoded   \\
+        #                   -show_trs_run 01 )
+    	# if [[ \$trs != "" ]] ; then  
+	#     3dFWHMx -ACF -detrend -mask mask_group+tlrc                      \\
+        # 	errts.$subject.anaticor+tlrc"[\$trs]" > acf.blur.errts.1D
+	# fi
     else
 	touch 00_DO_NOT_ANALYSE_${subject}_\${excessiveMotionThresholdPercentage}percent.txt
     fi
+    echo "Compressing BRIKs and nii files"
+    find ./ \( -name "*.BRIK" -o -name "*.nii" \) -print0 | xargs -0 gzip
 else
     echo "*** No such file \${preprocessingScript}"
     echo "*** Cannot continue"
     exit 1
-fi	
+fi
 
 EOF
 
